@@ -1,0 +1,67 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧾 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 🛠 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: ✍️ Write .env file
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
+          echo "VITE_API_URL=https://backend.tahirmohd.com" >> .env
+          echo "FRONTEND_URL=https://finance.tahirmohd.com" >> .env
+
+      - name: 🔨 Build React App (Vite)
+        run: npm run build
+
+      - name: 🧪 Debug List Build Output
+        run: |
+          echo "📁 Contents of dist/"
+          ls -la dist
+          echo "📁 Contents of root/"
+          ls -la .
+
+      - name: 🚀 Deploy Build Contents via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: 'dist/*'
+          target: '/var/www/finance/public_html'
+          strip_components: 1
+          rm: true
+
+      - name: 🚀 Deploy .htaccess via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: '.htaccess'
+          target: '/var/www/finance/public_html'
+          strip_components: 0
+
+      - name: 🔁 Restart Apache
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo systemctl restart apache2

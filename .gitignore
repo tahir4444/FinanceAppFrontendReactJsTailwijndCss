@@ -1,0 +1,67 @@
+# Dependency directories
+node_modules/
+
+# Build output
+build/
+dist/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.log
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Testing coverage
+coverage/
+.nyc_output/
+
+# React Native files (just in case)
+*.xcworkspace
+*.xcodeproj
+*.pbxproj
+
+# Parcel cache
+.cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Lint cache
+.eslintcache
+
+# Others
+*.tgz
+*.log
+
+# Output of 'npm pack'
+*.tgz
+
+# Storybook
+.out/
+.storybook-out/
+
+# Chrome Extension build folders
+crx-builds/
+
+# MacOS and Linux trash
+.Trashes

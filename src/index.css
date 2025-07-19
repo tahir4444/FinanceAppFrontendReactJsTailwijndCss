@@ -1,0 +1,293 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+:root {
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-500: #3b82f6;
+}
+
+/* Button styles */
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-600);
+  color: white;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-700);
+}
+
+/* Card styles */
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Input field styles */
+.input-field {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Expense Filters Responsive Styles */
+.expense-filters {
+  margin-bottom: 0.5rem;
+}
+.expense-filters .form-label {
+  font-weight: 500;
+}
+.expense-filters {
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 1rem 0.5rem 0.5rem 0.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+}
+@media (max-width: 767.98px) {
+  .expense-filters .col-md-3,
+  .expense-filters .col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+  }
+  .expense-filters {
+    padding: 0.75rem 0.25rem 0.25rem 0.25rem;
+  }
+  .card {
+    padding: 0.5rem;
+  }
+  .table-responsive {
+    overflow-x: auto;
+  }
+  .table {
+    min-width: 600px;
+  }
+}
+
+/* Make buttons and inputs more touch-friendly */
+.btn,
+.form-control,
+.input-field,
+.form-select {
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+/* Add subtle divider for filter section */
+.expense-filters {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Custom styles for react-select user dropdown */
+.user-select__control {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  min-height: 44px;
+  font-size: 1rem;
+  box-shadow: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 0;
+}
+.user-select__control--is-focused {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+.user-select__value-container {
+  padding: 0.5rem 0.75rem;
+}
+.user-select__input-container {
+  margin: 0;
+  padding: 0;
+}
+.user-select__single-value {
+  color: #111827;
+  font-size: 1rem;
+}
+.user-select__placeholder {
+  color: #6b7280;
+  font-size: 1rem;
+}
+.user-select__indicator-separator {
+  display: none;
+}
+.user-select__dropdown-indicator {
+  color: var(--primary-600);
+  padding: 0 0.5rem;
+}
+.user-select__menu {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 9999;
+  font-size: 1rem;
+}
+.user-select__option {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.user-select__option--is-focused {
+  background: var(--primary-500);
+  color: #fff;
+}
+.user-select__option--is-selected {
+  background: var(--primary-600);
+  color: #fff;
+}
+.user-select__clear-indicator {
+  color: #6b7280;
+  padding: 0 0.5rem;
+}
+
+.user-select__control,
+.form-control,
+.input-field {
+  height: auto;
+  min-height: 44px;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  box-shadow: none;
+}
+
+@media (max-width: 767.98px) {
+  .user-select__menu {
+    font-size: 1rem;
+  }
+}
+
+/* Roles Management Page Custom Styles */
+.roles-header {
+  background: var(--primary-600);
+  color: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
+  margin-bottom: 2rem;
+}
+.roles-header h2 {
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+.roles-header .btn-light {
+  background: #fff;
+  color: var(--primary-600);
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  transition: background 0.2s, color 0.2s;
+}
+.roles-header .btn-light:hover {
+  background: var(--primary-500);
+  color: #fff;
+}
+.roles-card {
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+.roles-card .card-body {
+  padding: 2rem 1.5rem;
+}
+.table thead th {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: #f8fafc;
+}
+.table-hover > tbody > tr:hover {
+  background-color: #e0e7ff;
+}
+.table td,
+.table th {
+  vertical-align: middle;
+}
+.badge {
+  font-size: 0.95rem;
+  border-radius: 0.5rem;
+}
+@media (max-width: 767.98px) {
+  .roles-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    padding: 1.25rem 0.75rem;
+  }
+  .roles-card .card-body {
+    padding: 1rem 0.5rem;
+  }
+  .table-responsive {
+    overflow-x: auto;
+  }
+  .table {
+    min-width: 600px;
+  }
+}
+
+/* --- Expense Management Filter Styles --- */
+.expense-reset-btn:hover,
+.expense-reset-btn:focus {
+  background: #fff !important;
+  color: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+.user-select__control {
+  min-height: 40px !important;
+  border-radius: 8px !important;
+  font-size: 1rem !important;
+}
+.user-select__menu {
+  z-index: 3050 !important;
+  font-size: 1rem !important;
+  min-width: 160px !important;
+  max-width: 220px !important;
+}
+
+.sticky-pagination {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.sidebar-transition {
+  transition: all 0.3s ease-in-out;
+}
+.card-hover {
+  transition: all 0.2s ease-in-out;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}

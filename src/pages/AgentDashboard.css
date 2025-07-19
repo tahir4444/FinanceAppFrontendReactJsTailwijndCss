@@ -1,0 +1,67 @@
+/* Sticky search bar */
+.sticky-search-bar {
+  position: sticky;
+  top: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  background: #fff;
+  z-index: 100;
+}
+
+/* Skeleton loader animation */
+.skeleton-loader {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.2s ease-in-out infinite;
+  border-radius: 4px;
+  min-height: 20px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* Responsive table tweaks */
+.agent-emi-table th, .agent-emi-table td {
+  vertical-align: middle;
+  font-size: 0.95rem;
+}
+
+/* Overdue row highlight */
+.overdue-row {
+  background-color: #fff3f3 !important;
+}
+
+/* Icon alignment for alert/calendar */
+.bi {
+  vertical-align: -0.125em;
+}
+
+@media (max-width: 768px) {
+  .agent-dashboard-root {
+    padding: 0.5rem !important;
+  }
+  .agent-emi-table th, .agent-emi-table td {
+    font-size: 0.85rem;
+    padding: 0.3rem;
+  }
+  .sticky-search-bar {
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .agent-emi-table th, .agent-emi-table td {
+    font-size: 0.75rem;
+    padding: 0.2rem;
+  }
+  .sticky-search-bar {
+    padding: 0.25rem !important;
+  }
+}
+
+/* Note: For icons to show, ensure Bootstrap Icons are included in your project. */ 
