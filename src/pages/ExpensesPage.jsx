@@ -194,6 +194,8 @@ const ExpensesPage = () => {
       if (user.role === 'agent') {
         // If user is an agent, set the filter to their ID and don't fetch other users.
         setSelectedUser(user.id);
+        // For agents, immediately fetch their expenses
+        fetchExpenses(1, false, '', user.id, null, null);
       } else {
         // If user is not an agent (e.g., admin), fetch all users for the dropdown.
         fetchUsers();
@@ -228,7 +230,11 @@ const ExpensesPage = () => {
   const handleResetFilters = () => {
     setStartDate(null);
     setEndDate(null);
-    setSelectedUser('');
+    if (user?.role === 'agent') {
+      setSelectedUser(user.id); // Keep agent's ID for agents
+    } else {
+      setSelectedUser('');
+    }
     setSearch('');
   };
 
@@ -247,13 +253,6 @@ const ExpensesPage = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleResetFilters}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <FaSyncAlt className="w-4 h-4 mr-2" />
-              Reset Filters
-            </button>
             <button
               onClick={() => setShowForm(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -323,60 +322,295 @@ const ExpensesPage = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search expenses..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+      {/* Enhanced Filters Section */}
+      {user?.role === 'agent' ? (
+        /* Agent Filters - Simplified Layout */
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaFilter className="w-5 h-5 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">My Expenses Filters</h3>
+              </div>
+              <button
+                onClick={handleResetFilters}
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              >
+                <FaSyncAlt className="w-3 h-3 mr-1.5" />
+                Clear All
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              User
-            </label>
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Users</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
-            </label>
-            <DatePicker
-              selected={startDate}
-              onChange={(date) => setStartDate(date)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholderText="Select start date"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date
-            </label>
-            <DatePicker
-              selected={endDate}
-              onChange={(date) => setEndDate(date)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholderText="Select end date"
-            />
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Search Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Search My Expenses
+                </label>
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, reason..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Start Date Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  From Date
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    selected={startDate}
+                    onChange={(date) => setStartDate(date)}
+                    className="w-full pr-10 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholderText="Select from date"
+                    dateFormat="dd/MM/yyyy"
+                    maxDate={endDate || new Date()}
+                  />
+                  <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none">
+                    <FiCalendar className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* End Date Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  To Date
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    selected={endDate}
+                    onChange={(date) => setEndDate(date)}
+                    className="w-full pr-10 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholderText="Select to date"
+                    dateFormat="dd/MM/yyyy"
+                    minDate={startDate}
+                    maxDate={new Date()}
+                  />
+                  <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none">
+                    <FiCalendar className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Filters Display for Agents */}
+            {((search && search.trim() !== '') || startDate || endDate) && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {search && search.trim() !== '' && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Search: "{search}"
+                        <button
+                          onClick={() => setSearch('')}
+                          className="ml-1.5 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {startDate && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        From: {dayjs(startDate).format('DD/MM/YYYY')}
+                        <button
+                          onClick={() => setStartDate(null)}
+                          className="ml-1.5 text-yellow-600 hover:text-yellow-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {endDate && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        To: {dayjs(endDate).format('DD/MM/YYYY')}
+                        <button
+                          onClick={() => setEndDate(null)}
+                          className="ml-1.5 text-purple-600 hover:text-purple-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      ) : (
+        /* Admin Filters - Original Layout */
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaFilter className="w-5 h-5 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+              </div>
+              <button
+                onClick={handleResetFilters}
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              >
+                <FaSyncAlt className="w-3 h-3 mr-1.5" />
+                Clear All
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+              {/* Search Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Search Expenses
+                </label>
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, reason..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* User Filter - Only show for admins */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Filter by User
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
+                  >
+                    <option value="">All Users</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Start Date Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Start Date
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    selected={startDate}
+                    onChange={(date) => setStartDate(date)}
+                    className="w-full pr-10 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholderText="Select start date"
+                    dateFormat="dd/MM/yyyy"
+                    maxDate={endDate || new Date()}
+                  />
+                  <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none">
+                    <FiCalendar className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* End Date Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  End Date
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    selected={endDate}
+                    onChange={(date) => setEndDate(date)}
+                    className="w-full pr-10 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholderText="Select end date"
+                    dateFormat="dd/MM/yyyy"
+                    minDate={startDate}
+                    maxDate={new Date()}
+                  />
+                  <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none">
+                    <FiCalendar className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Filters Display for Admins */}
+            {((search && search.trim() !== '') || selectedUser || startDate || endDate) && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {search && search.trim() !== '' && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Search: "{search}"
+                        <button
+                          onClick={() => setSearch('')}
+                          className="ml-1.5 text-blue-600 hover:text-blue-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {selectedUser && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        User: {users.find(u => u.id == selectedUser)?.name || 'Unknown'}
+                        <button
+                          onClick={() => setSelectedUser('')}
+                          className="ml-1.5 text-green-600 hover:text-green-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {startDate && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        From: {dayjs(startDate).format('DD/MM/YYYY')}
+                        <button
+                          onClick={() => setStartDate(null)}
+                          className="ml-1.5 text-yellow-600 hover:text-yellow-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                    {endDate && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        To: {dayjs(endDate).format('DD/MM/YYYY')}
+                        <button
+                          onClick={() => setEndDate(null)}
+                          className="ml-1.5 text-purple-600 hover:text-purple-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Expenses Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
