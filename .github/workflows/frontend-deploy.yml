@@ -1,4 +1,4 @@
-name: Frontend CI/CD
+name: ${{ secrets.APP_NAME }}
 
 on:
   push:
@@ -41,9 +41,9 @@ jobs:
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: 'dist/*'
-          target: '/var/www/finance/public_html'
+          target: ${{ secrets.APP_PATH }}
           strip_components: 1
           rm: true
 
@@ -54,7 +54,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: '.htaccess'
-          target: '/var/www/finance/public_html'
+          target: ${{ secrets.APP_PATH }}
           strip_components: 0
 
       - name: 🔁 Restart Apache
