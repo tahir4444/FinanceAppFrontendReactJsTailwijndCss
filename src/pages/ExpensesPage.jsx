@@ -324,119 +324,127 @@ const ExpensesPage = () => {
 
       {/* Enhanced Filters Section */}
       {user?.role === 'agent' ? (
-        /* Agent Filters - Simplified Layout */
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FaFilter className="w-5 h-5 text-gray-600" />
-                <h3 className="text-lg font-semibold text-gray-900">My Expenses Filters</h3>
+        /* Agent Filters - Modern Card Style */
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-lg border border-blue-100 mb-6">
+          <div className="px-6 py-5">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <FaFilter className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">My Expenses</h3>
+                  <p className="text-sm text-gray-600">Filter and search your expense records</p>
+                </div>
               </div>
               <button
                 onClick={handleResetFilters}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
               >
-                <FaSyncAlt className="w-3 h-3 mr-1.5" />
-                Clear All
+                <FaSyncAlt className="w-4 h-4 mr-2" />
+                Reset Filters
               </button>
             </div>
-          </div>
-          
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Search Filter */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Search My Expenses
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Search Filter - Modern Style */}
+              <div className="group">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <FiSearch className="w-4 h-4 inline mr-2 text-blue-500" />
+                  Search Expenses
                 </label>
                 <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search by name, reason..."
+                    placeholder="Type to search expenses..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-4 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 placeholder-gray-400"
                   />
-                </div>
-              </div>
-
-              {/* Start Date Filter */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  From Date
-                </label>
-                <div className="relative">
-                  <DatePicker
-                    selected={startDate}
-                    onChange={(date) => setStartDate(date)}
-                    className="w-full pr-10 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholderText="Select from date"
-                    dateFormat="dd/MM/yyyy"
-                    maxDate={endDate || new Date()}
-                  />
-                  <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none">
-                    <FiCalendar className="w-4 h-4 text-gray-400" />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-200"></div>
                   </div>
                 </div>
               </div>
 
-              {/* End Date Filter */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  To Date
+              {/* Date Range Filter - Combined Style */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <FiCalendar className="w-4 h-4 inline mr-2 text-blue-500" />
+                  Date Range
                 </label>
-                <div className="relative">
-                  <DatePicker
-                    selected={endDate}
-                    onChange={(date) => setEndDate(date)}
-                    className="w-full pr-10 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholderText="Select to date"
-                    dateFormat="dd/MM/yyyy"
-                    minDate={startDate}
-                    maxDate={new Date()}
-                  />
-                  <div className="absolute inset-y-0 right-1 flex items-center pointer-events-none">
-                    <FiCalendar className="w-4 h-4 text-gray-400" />
+                <div className="flex space-x-1">
+                  {/* From Date */}
+                  <div className="relative group w-50">
+                    <DatePicker
+                      selected={startDate}
+                      onChange={(date) => setStartDate(date)}
+                      className="w-full pl-4 pr-10 py-3 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                      placeholderText="Start date"
+                      dateFormat="dd/MM/yyyy"
+                      maxDate={endDate || new Date()}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <FiCalendar className="w-4 h-4 text-blue-500 group-focus-within:text-blue-600 transition-colors duration-200" />
+                    </div>
+                  </div>
+
+                  {/* To Date */}
+                  <div className="relative group w-50">
+                    <DatePicker
+                      selected={endDate}
+                      onChange={(date) => setEndDate(date)}
+                      className="w-full pl-4 pr-10 py-3 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                      placeholderText="End date"
+                      dateFormat="dd/MM/yyyy"
+                      minDate={startDate}
+                      maxDate={new Date()}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <FiCalendar className="w-4 h-4 text-blue-500 group-focus-within:text-blue-600 transition-colors duration-200" />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Active Filters Display for Agents */}
+            {/* Active Filters Display - Modern Style */}
             {((search && search.trim() !== '') || startDate || endDate) && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-700">Active Filters:</span>
-                  <div className="flex flex-wrap gap-2">
+              <div className="mt-6 pt-6 border-t border-blue-200">
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm font-semibold text-gray-700">Active Filters:</span>
+                  <div className="flex flex-wrap gap-3">
                     {search && search.trim() !== '' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Search: "{search}"
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                        <FiSearch className="w-3 h-3 mr-1.5" />
+                        "{search}"
                         <button
                           onClick={() => setSearch('')}
-                          className="ml-1.5 text-blue-600 hover:text-blue-800"
+                          className="ml-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
                         >
                           ×
                         </button>
                       </span>
                     )}
                     {startDate && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                        <FiCalendar className="w-3 h-3 mr-1.5" />
                         From: {dayjs(startDate).format('DD/MM/YYYY')}
                         <button
                           onClick={() => setStartDate(null)}
-                          className="ml-1.5 text-yellow-600 hover:text-yellow-800"
+                          className="ml-2 text-green-600 hover:text-green-800 hover:bg-green-200 rounded-full p-0.5 transition-colors"
                         >
                           ×
                         </button>
                       </span>
                     )}
                     {endDate && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                        <FiCalendar className="w-3 h-3 mr-1.5" />
                         To: {dayjs(endDate).format('DD/MM/YYYY')}
                         <button
                           onClick={() => setEndDate(null)}
-                          className="ml-1.5 text-purple-600 hover:text-purple-800"
+                          className="ml-2 text-purple-600 hover:text-purple-800 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
                         >
                           ×
                         </button>
