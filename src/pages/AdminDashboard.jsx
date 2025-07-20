@@ -92,16 +92,6 @@ export default function AdminDashboard() {
         setAcceptedLoansLoading(false);
       });
     axiosInstance
-      .get('/expenses/total')
-      .then((response) => {
-        setExpenses(response.data.total || 0);
-        setExpensesLoading(false);
-      })
-      .catch(() => {
-        setExpenses(0);
-        setExpensesLoading(false);
-      });
-    axiosInstance
       .get('/todos/stats')
       .then((response) => {
         setTasks({
@@ -115,16 +105,17 @@ export default function AdminDashboard() {
         setTasks({ total: 0, completed: 0, pending: 0 });
         setTasksLoading(false);
       });
-    axiosInstance
-      .get('/loans/admin-dashboard')
-      .then((response) => {
-        setDashboardStats(response.data || {});
-        setDashboardStatsLoading(false);
-      })
-      .catch(() => {
-        setDashboardStats({});
-        setDashboardStatsLoading(false);
-      });
+    // Remove the call to /loans/admin-dashboard
+    // axiosInstance
+    //   .get('/loans/admin-dashboard')
+    //   .then((response) => {
+    //     setDashboardStats(response.data || {});
+    //     setDashboardStatsLoading(false);
+    //   })
+    //   .catch(() => {
+    //     setDashboardStats({});
+    //     setDashboardStatsLoading(false);
+    //   });
   }, [isAuthenticated, navigate]);
 
   return (

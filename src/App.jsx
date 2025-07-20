@@ -25,6 +25,7 @@ import CreditReportsPage from './pages/CreditReportsPage';
 import AdminSidebarLayout from './components/AdminLayout';
 import NotificationsPage from './pages/NotificationsPage';
 import SendNotificationPage from './pages/SendNotificationPage';
+import AgentCollectionsReport from './pages/AgentCollectionsReport';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -71,16 +72,6 @@ const App = () => {
           }
         />
         
-        {/* Dashboard route - handles role-based routing internally */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Admin-only routes with AdminSidebarLayout */}
         <Route
           element={
@@ -89,7 +80,7 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/users" element={<UsersManager />} />
           <Route path="/loans" element={<LoansPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
@@ -111,6 +102,8 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/loans/agent-collections" element={<AgentCollectionsReport />} />
+          <Route path="/agent-collections" element={<Navigate to="/loans/agent-collections" replace />} />
         </Route>
 
         {/* Agent routes with AgentLayout */}

@@ -28,6 +28,7 @@ const sidebarLinks = [
   { to: '/roles', icon: FiSettings, label: 'Roles' },
   { to: '/reports', icon: FiBarChart2, label: 'Reports' },
   { to: '/support-messages', icon: FiFileText, label: 'Support' },
+  { to: '/loans/agent-collections', icon: FiCreditCard, label: 'Agent Collections' },
 ];
 
 const AdminSidebarLayout = () => {
@@ -61,18 +62,15 @@ const AdminSidebarLayout = () => {
     };
   }, [dropdownOpen]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="text-xl font-semibold text-gray-800">Loading...</div>
-      </div>
-    );
-  }
+  // DEBUG: Log user object
+  console.log('AdminSidebarLayout user:', user);
 
+  // Robust role check
+  const role = user?.role || user?.Role?.name;
   if (
     isAuthenticated &&
-    user?.role !== 'admin' &&
-    user?.role !== 'superadmin'
+    role !== 'admin' &&
+    role !== 'superadmin'
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -84,6 +82,14 @@ const AdminSidebarLayout = () => {
             You don't have permission to access the admin area.
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-xl font-semibold text-gray-800">Loading...</div>
       </div>
     );
   }

@@ -67,15 +67,26 @@ const SupportMessagesPage = () => {
         filters
       );
 
-      if (pageNum === 1) {
-        setMessages(response.rows);
+      let rows = [];
+      if (Array.isArray(response)) {
+        rows = response;
+      } else if (Array.isArray(response?.rows)) {
+        rows = response.rows;
+      } else if (Array.isArray(response?.messages)) {
+        rows = response.messages;
       } else {
-        setMessages((prev) => [...prev, ...response.rows]);
+        rows = [];
       }
 
-      setTotalRecords(response.count);
-      setTotalPages(Math.ceil(response.count / ITEMS_PER_PAGE));
-      setHasMore(response.rows.length === ITEMS_PER_PAGE);
+      if (pageNum === 1) {
+        setMessages(rows);
+      } else {
+        setMessages((prev) => [...prev, ...rows]);
+      }
+
+      setTotalRecords(response.count || rows.length || 0);
+      setTotalPages(Math.ceil((response.count || rows.length || 0) / ITEMS_PER_PAGE));
+      setHasMore(rows.length === ITEMS_PER_PAGE);
     } catch (error) {
       toast.error('Failed to fetch support messages');
       console.error('Error fetching messages:', error);

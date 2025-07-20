@@ -11,12 +11,43 @@ import {
   FiCalendar,
   FiArrowUp,
   FiArrowDown,
+  FiDownload,
 } from 'react-icons/fi';
+import Select from 'react-select';
+import axiosInstance from '../services/axios';
+import dayjs from 'dayjs';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A';
   return new Date(dateStr).toLocaleString();
 };
+
+// Utility to export array of objects to CSV
+function exportToCSV(data, filename) {
+  if (!data || !data.length) return;
+  // Flatten and map only relevant fields, with date as the first column
+  const flatData = data.map(row => ({
+    date: (row.created_at || row.createdAt) ? dayjs(row.created_at || row.createdAt).format('DD-MM-YY') : '',
+    customer_name: row.customer_name || '',
+    customer_email: row.customer_email || '',
+    loan_code: row.loan_code || '',
+    event_type: row.event_type || '',
+    amount: row.amount || '',
+    notes: row.notes || '',
+  }));
+  const header = Object.keys(flatData[0]);
+  const csv = [
+    header.join(','),
+    ...flatData.map(row => header.map(fieldName => JSON.stringify(row[fieldName] ?? '', (key, value) => value === null ? '' : value)).join(','))
+  ].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
 
 const CreditReportsPage = () => {
   const [reports, setReports] = useState([]);
@@ -26,6 +57,8 @@ const CreditReportsPage = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   // Calculate stats
   const stats = {
@@ -50,6 +83,7 @@ const CreditReportsPage = () => {
         search,
         sort_by: sortBy,
         sort_direction: sortDirection,
+        ...(selectedCustomer ? { customer_id: selectedCustomer.value } : {}),
       };
       const res = await getCreditReports(params);
       setReports(res.data.reports);
@@ -63,9 +97,23 @@ const CreditReportsPage = () => {
     setLoading(false);
   };
 
+  // Fetch customers for dropdown
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await axiosInstance.get('/users?role=user&limit=1000');
+        setCustomers(res.data.users || []);
+      } catch (err) {
+        setCustomers([]);
+      }
+    };
+    fetchCustomers();
+  }, []);
+
   useEffect(() => {
     fetchReports();
-  }, [page, search, sortBy, sortDirection]);
+    // eslint-disable-next-line
+  }, [page, search, sortBy, sortDirection, selectedCustomer]);
 
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
@@ -106,6 +154,27 @@ const CreditReportsPage = () => {
               Monitor credit events, track EMI payments, and analyze financial
               performance.
             </p>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div style={{ minWidth: 320 }}>
+              <Select
+                options={customers.map((c) => ({ value: c.id, label: `${c.name} (${c.email})` }))}
+                value={selectedCustomer}
+                onChange={setSelectedCustomer}
+                isClearable
+                placeholder="Filter by Customer..."
+                classNamePrefix="react-select"
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+              />
+            </div>
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold shadow"
+              onClick={() => exportToCSV(reports, 'credit_reports.csv')}
+              disabled={!reports.length}
+            >
+              <FiDownload /> Export to CSV
+            </button>
           </div>
         </div>
       </div>
