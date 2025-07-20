@@ -6,9 +6,15 @@ import {
 } from '../services/support.service';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
+import { FiMail, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
 
 // Define status options
 const STATUS_OPTIONS = ['Pending', 'In-Progress', 'Resolved'];
+const STATUS_ICONS = {
+  'Pending': <FiClock className="w-6 h-6" />,
+  'In-Progress': <FiAlertCircle className="w-6 h-6" />,
+  'Resolved': <FiCheckCircle className="w-6 h-6" />,
+};
 
 const getStatusConfig = (status) => {
   switch (status) {
@@ -146,45 +152,39 @@ const SupportMessagesPage = () => {
 
   return (
     <>
-      {/* Main Support Messages Content: header, table, etc. */}
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 mb-6 shadow-lg">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center text-white">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-500 rounded-lg text-white">
+            <FiMail className="w-7 h-7" />
+          </div>
           <div>
-            <h1 className="text-3xl font-bold mb-2">Support Messages</h1>
-            <p className="text-blue-100 text-lg">
-              Manage and respond to user support requests
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Support Messages</h1>
+            <p className="text-gray-500 text-base">Manage and respond to user support requests</p>
           </div>
-          <div className="mt-4 md:mt-0 text-right">
-            <div className="text-2xl font-bold">{totalRecords}</div>
-            <div className="text-blue-100">Total Messages</div>
-          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-gray-900">{totalRecords}</div>
+          <div className="text-gray-500">Total Messages</div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {STATUS_OPTIONS.map((status) => {
           const count = messages.filter((msg) => msg.status === status).length;
           const config = getStatusConfig(status);
           return (
             <div
               key={status}
-              className={`bg-gradient-to-br ${config.bgGradient} rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300`}
+              className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover flex items-center justify-between`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold text-gray-800">
-                    {count}
-                  </div>
-                  <div className="text-gray-600 font-medium">{status}</div>
-                </div>
-                <div
-                  className={`w-12 h-12 rounded-full ${config.color} flex items-center justify-center text-xl`}
-                >
-                  {config.icon}
-                </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{count}</div>
+                <div className="text-gray-600 font-medium">{status}</div>
+              </div>
+              <div className={`p-3 rounded-lg ml-4 ${status === 'Pending' ? 'bg-gray-400' : status === 'In-Progress' ? 'bg-yellow-400' : 'bg-green-500'} text-white`}>
+                {STATUS_ICONS[status]}
               </div>
             </div>
           );
@@ -192,39 +192,31 @@ const SupportMessagesPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Filter by Status
-            </label>
-            <select
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-            >
-              <option value="">All Statuses</option>
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search Messages
-            </label>
-            <input
-              type="text"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              placeholder="Search by subject or message..."
-              name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
-            />
-          </div>
+      <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-end gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+          <select
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+            name="status"
+            value={filters.status}
+            onChange={handleFilterChange}
+          >
+            <option value="">All Statuses</option>
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Search Messages</label>
+          <input
+            type="text"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            placeholder="Search by subject or message..."
+            name="search"
+            value={filters.search}
+            onChange={handleFilterChange}
+          />
         </div>
       </div>
 
@@ -237,19 +229,8 @@ const SupportMessagesPage = () => {
               fill="none"
               viewBox="0 0 24 24"
             >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             Loading support messages...
           </div>
@@ -263,63 +244,39 @@ const SupportMessagesPage = () => {
               return (
                 <div
                   key={message.id}
-                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 flex items-start gap-6"
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                    {/* Status and Date */}
-                    <div className="flex items-center gap-3 lg:w-48">
-                      <div
-                        className={`w-3 h-3 rounded-full ${statusConfig.dotColor} animate-pulse`}
-                      ></div>
-                      <div className="flex-1">
-                        <div
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color} border`}
-                        >
-                          <span className="mr-1">{statusConfig.icon}</span>
-                          {message.status}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          {dayjs(message.createdAt).format('MMM DD, YYYY')}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {dayjs(message.createdAt).format('HH:mm')}
-                        </div>
-                      </div>
+                  {/* Status Bar */}
+                  <div className={`w-2 rounded-xl h-full ${message.status === 'Resolved' ? 'bg-green-500' : message.status === 'In-Progress' ? 'bg-yellow-400' : 'bg-gray-400'}`}></div>
+                  {/* Main Content */}
+                  <div className="flex-1">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-2">
+                      {/* Move customer name to the very left */}
+                      <div className="text-sm text-gray-500 font-medium md:text-left md:min-w-[120px]">{message.user?.name || 'Unknown User'}</div>
+                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{message.subject}</h3>
                     </div>
-
-                    {/* Message Content */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
-                          {message.subject}
-                        </h3>
-                        <div className="text-sm text-gray-500 font-medium">
-                          {message.user?.name || 'Unknown User'}
-                        </div>
+                    <p className="text-gray-600 line-clamp-2 mb-3">{message.message}</p>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <span>{dayjs(message.createdAt).format('MMM DD, YYYY')}</span>
+                        <span>•</span>
+                        <span>{dayjs(message.createdAt).format('HH:mm')}</span>
+                        <span>•</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium text-xs ${statusConfig.color} border`}>{statusConfig.icon} {message.status}</span>
                       </div>
-                      <p className="text-gray-600 line-clamp-2 mb-3">
-                        {message.message}
-                      </p>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 mt-2 md:mt-0">
                         <select
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                           value={message.status}
-                          onChange={(e) =>
-                            handleStatusChange(message.id, e.target.value)
-                          }
+                          onChange={(e) => handleStatusChange(message.id, e.target.value)}
                         >
                           {STATUS_OPTIONS.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
+                            <option key={status} value={status}>{status}</option>
                           ))}
                         </select>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200">
+                        {/* <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200">
                           Reply
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                   </div>
@@ -332,60 +289,30 @@ const SupportMessagesPage = () => {
             <div className="text-center my-12">
               <div className="bg-gray-50 rounded-xl p-8 border-2 border-dashed border-gray-300">
                 <div className="text-6xl mb-4">📬</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No Support Messages
-                </h3>
-                <p className="text-gray-500">
-                  No messages found matching your current filters.
-                </p>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Support Messages</h3>
+                <p className="text-gray-500">No messages found matching your current filters.</p>
               </div>
             </div>
           ) : (
             <div className="text-center my-8">
               {hasMore ? (
                 <button
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
                   onClick={handleLoadMore}
                   disabled={loadingMore}
                 >
                   {loadingMore ? (
                     <>
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       Loading...
                     </>
                   ) : (
                     <>
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                       Load More Messages
                     </>
@@ -393,8 +320,7 @@ const SupportMessagesPage = () => {
                 </button>
               ) : (
                 <div className="text-gray-500 bg-gray-50 rounded-lg px-6 py-3 inline-block">
-                  <span className="font-medium">✨ All caught up!</span> No more
-                  messages to load
+                  <span className="font-medium">✨ All caught up!</span> No more messages to load
                 </div>
               )}
             </div>

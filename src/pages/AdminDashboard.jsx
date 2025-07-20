@@ -51,6 +51,21 @@ export default function AdminDashboard() {
   const [penalties, setPenalties] = useState(0);
   const [overdueEmis, setOverdueEmis] = useState(0);
   const [overdueEmisAmount, setOverdueEmisAmount] = useState(0);
+  const [interestMetrics, setInterestMetrics] = useState({
+    interestCollectedThisMonth: null,
+    expectedInterest: null,
+    avgInterestRate: null,
+    paidInterest: null,
+    collectedVsExpected: null,
+  });
+  const [financialHealth, setFinancialHealth] = useState({
+    totalPrincipal: null,
+    amountRecovered: null,
+    interestEarned: null,
+    inflow30: null,
+    inflow60: null,
+    inflow90: null,
+  });
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -139,18 +154,13 @@ export default function AdminDashboard() {
       setPenalties(res.data.totalPenalties || 0);
       setOverdueEmis(res.data.overdueEmisCount || 0);
       setOverdueEmisAmount(res.data.overdueEmisAmount || 0);
+      setDashboardStats((prev) => ({ ...prev, ...res.data }));
+      setDashboardStatsLoading(false);
     });
-    // Remove the call to /loans/admin-dashboard
-    // axiosInstance
-    //   .get('/loans/admin-dashboard')
-    //   .then((response) => {
-    //     setDashboardStats(response.data || {});
-    //     setDashboardStatsLoading(false);
-    //   })
-    //   .catch(() => {
-    //     setDashboardStats({});
-    //     setDashboardStatsLoading(false);
-    //   });
+    // Fetch /expenses/dashboard for pendingClaims and categories
+    axiosInstance.get('/expenses/dashboard').then(res => {
+      setDashboardStats((prev) => ({ ...prev, ...res.data }));
+    });
     // Fetch agent users monthly stats
     axiosInstance.get('/users/stats/agents/monthly').then(res => {
       const last = res.data.lastMonthCount || 0;
@@ -183,6 +193,14 @@ export default function AdminDashboard() {
     }).catch(() => {
       setExpenses(0);
       setExpensesLoading(false);
+    });
+    // Fetch interest metrics alternatives
+    axiosInstance.get('/stats/interest-metrics').then(res => {
+      setInterestMetrics(res.data);
+    });
+    // Fetch financial health metrics
+    axiosInstance.get('/loans/financial-health').then(res => {
+      setFinancialHealth(res.data);
     });
   }, [isAuthenticated, navigate]);
 
@@ -422,7 +440,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Interest Earned</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Interest Earned (excluding principal)</p>
               <p className="text-2xl font-bold text-gray-900">₹{interest.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-yellow-600 rounded-lg">
@@ -479,35 +497,50 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-        {/* Loan Status Breakdown */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover col-span-1 md:col-span-2 lg:col-span-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Loan Status Breakdown
-              </p>
-              <div className="flex gap-6 mt-2">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">Loading...</span>
-                ) : (
-                  Object.entries(dashboardStats.loanStatusBreakdown || {}).map(
-                    ([status, count]) => (
-                      <div key={status} className="flex flex-col items-center">
-                        <span className="text-lg font-semibold text-gray-800 capitalize">
-                          {status}
-                        </span>
-                        <span className="text-xl font-bold text-gray-900">
-                          {count}
-                        </span>
-                      </div>
-                    )
-                  )
-                )}
+        {/* Financial Health: Interest vs Principal Recovery */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Interest vs Principal Recovery</p>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Principal Recovered:</span>
+                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.totalPrincipal !== null ? financialHealth.totalPrincipal.toLocaleString() : '--'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Interest Earned:</span>
+                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.interestEarned !== null ? financialHealth.interestEarned.toLocaleString() : '--'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Total Recovered:</span>
+                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.amountRecovered !== null ? financialHealth.amountRecovered.toLocaleString() : '--'}</span>
               </div>
             </div>
-            <div className="p-3 bg-gray-600 rounded-lg">
-              <FiBarChart2 className="w-6 h-6 text-white" />
+          </div>
+          <div className="p-3 bg-indigo-500 rounded-lg ml-6">
+            <FiBarChart2 className="w-6 h-6 text-white" />
+          </div>
+        </div>
+        {/* Financial Health: Cash Flow Projection */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Cash Flow Projection</p>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Next 30 days:</span>
+                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.inflow30 !== null ? financialHealth.inflow30.toLocaleString() : '--'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Next 60 days:</span>
+                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.inflow60 !== null ? financialHealth.inflow60.toLocaleString() : '--'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Next 90 days:</span>
+                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.inflow90 !== null ? financialHealth.inflow90.toLocaleString() : '--'}</span>
+              </div>
             </div>
+          </div>
+          <div className="p-3 bg-green-500 rounded-lg ml-6">
+            <FiTrendingUp className="w-6 h-6 text-white" />
           </div>
         </div>
       </div>
@@ -568,7 +601,7 @@ export default function AdminDashboard() {
                 {expensesLoading ? (
                   <span className="animate-pulse">-</span>
                 ) : (
-                  `₹${expenses.toLocaleString()}`
+                  `₹${expenses?.toLocaleString?.() ?? expenses}`
                 )}
               </span>
             </div>
@@ -578,7 +611,7 @@ export default function AdminDashboard() {
                 {dashboardStatsLoading ? (
                   <span className="animate-pulse">-</span>
                 ) : (
-                  dashboardStats.expensesBreakdown?.pendingClaims || 0
+                  dashboardStats.pendingClaims ?? '-'
                 )}
               </span>
             </div>
@@ -588,7 +621,7 @@ export default function AdminDashboard() {
                 {dashboardStatsLoading ? (
                   <span className="animate-pulse">-</span>
                 ) : (
-                  dashboardStats.expensesBreakdown?.categories || 0
+                  dashboardStats.categories ?? '-'
                 )}
               </span>
             </div>
