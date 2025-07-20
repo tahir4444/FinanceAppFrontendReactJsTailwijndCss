@@ -16,7 +16,7 @@ export const getAllSupportMessages = async (
   });
   return {
     count: response.data.total,
-    rows: response.data.data,
+    rows: response.data.messages, // <-- fix: use messages, not data
   };
 };
 

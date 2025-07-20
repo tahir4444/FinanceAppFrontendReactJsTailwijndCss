@@ -36,6 +36,21 @@ export default function AdminDashboard() {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({});
   const [dashboardStatsLoading, setDashboardStatsLoading] = useState(true);
+  const [currentMonthUsers, setCurrentMonthUsers] = useState(0);
+  const [lastMonthUsers, setLastMonthUsers] = useState(0);
+  const [userPercentChange, setUserPercentChange] = useState(0);
+  const [agentPercentChange, setAgentPercentChange] = useState(0);
+  const [revenuePercentChange, setRevenuePercentChange] = useState(0);
+  const [approvedLoansPercentChange, setApprovedLoansPercentChange] = useState(0);
+  const [expensesPercentChange, setExpensesPercentChange] = useState(0);
+  const [principal, setPrincipal] = useState(0);
+  const [recovered, setRecovered] = useState(0);
+  const [interest, setInterest] = useState(0);
+  const [todaysEmis, setTodaysEmis] = useState(0);
+  const [todaysUnpaidEmis, setTodaysUnpaidEmis] = useState(0);
+  const [penalties, setPenalties] = useState(0);
+  const [overdueEmis, setOverdueEmis] = useState(0);
+  const [overdueEmisAmount, setOverdueEmisAmount] = useState(0);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -61,6 +76,15 @@ export default function AdminDashboard() {
         setUserCount(0);
         setUserLoading(false);
       });
+    // Fetch monthly user stats for percentage
+    axiosInstance.get('/users/stats/monthly').then(res => {
+      setCurrentMonthUsers(res.data.currentMonthCount || 0);
+      setLastMonthUsers(res.data.lastMonthCount || 0);
+      const last = res.data.lastMonthCount || 0;
+      const curr = res.data.currentMonthCount || 0;
+      const percent = last ? ((curr - last) / last) * 100 : 0;
+      setUserPercentChange(percent);
+    });
     axiosInstance
       .get('/users?role=agent')
       .then((response) => {
@@ -74,7 +98,7 @@ export default function AdminDashboard() {
     axiosInstance
       .get('/stats/revenue')
       .then((response) => {
-        setRevenue(response.data.revenue || 0);
+        setRevenue(response.data.totalRevenue || 0);
         setRevenueLoading(false);
       })
       .catch(() => {
@@ -82,7 +106,7 @@ export default function AdminDashboard() {
         setRevenueLoading(false);
       });
     axiosInstance
-      .get('/loans?status=accepted')
+      .get('/loans?status=approved')
       .then((response) => {
         setAcceptedLoans(response.data.total || 0);
         setAcceptedLoansLoading(false);
@@ -105,6 +129,17 @@ export default function AdminDashboard() {
         setTasks({ total: 0, completed: 0, pending: 0 });
         setTasksLoading(false);
       });
+    // Fetch admin dashboard stats for principal, recovered, interest, etc.
+    axiosInstance.get('/loans/admin-dashboard').then(res => {
+      setPrincipal(res.data.totalPrincipal || 0);
+      setRecovered(res.data.amountRecovered || 0);
+      setInterest(res.data.interestEarned || 0);
+      setTodaysEmis(res.data.todaysEmisCount || 0);
+      setTodaysUnpaidEmis(res.data.todaysUnpaidEmisCount || 0);
+      setPenalties(res.data.totalPenalties || 0);
+      setOverdueEmis(res.data.overdueEmisCount || 0);
+      setOverdueEmisAmount(res.data.overdueEmisAmount || 0);
+    });
     // Remove the call to /loans/admin-dashboard
     // axiosInstance
     //   .get('/loans/admin-dashboard')
@@ -116,6 +151,39 @@ export default function AdminDashboard() {
     //     setDashboardStats({});
     //     setDashboardStatsLoading(false);
     //   });
+    // Fetch agent users monthly stats
+    axiosInstance.get('/users/stats/agents/monthly').then(res => {
+      const last = res.data.lastMonthCount || 0;
+      const curr = res.data.currentMonthCount || 0;
+      const percent = last ? ((curr - last) / last) * 100 : 0;
+      setAgentPercentChange(percent);
+    });
+    // Fetch revenue monthly stats
+    axiosInstance.get('/stats/revenue/monthly').then(res => {
+      const last = res.data.lastMonth || 0;
+      const curr = res.data.currentMonth || 0;
+      const percent = last ? ((curr - last) / last) * 100 : 0;
+      setRevenuePercentChange(percent);
+    });
+    // Fetch approved loans monthly stats
+    axiosInstance.get('/stats/loans/approved/monthly').then(res => {
+      const last = res.data.lastMonth || 0;
+      const curr = res.data.currentMonth || 0;
+      const percent = last ? ((curr - last) / last) * 100 : 0;
+      setApprovedLoansPercentChange(percent);
+    });
+    // Fetch expenses monthly stats
+    axiosInstance.get('/stats/expenses/monthly').then(res => {
+      const last = res.data.lastMonth || 0;
+      const curr = res.data.currentMonth || 0;
+      setExpenses(curr); // Set the current month's expenses value
+      const percent = last ? ((curr - last) / last) * 100 : 0;
+      setExpensesPercentChange(percent);
+      setExpensesLoading(false);
+    }).catch(() => {
+      setExpenses(0);
+      setExpensesLoading(false);
+    });
   }, [isAuthenticated, navigate]);
 
   return (
@@ -155,7 +223,9 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center">
             <FiTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-sm font-medium text-green-600">+12%</span>
+            <span className="text-sm font-medium text-green-600">
+              {userPercentChange > 0 ? '+' : ''}{userPercentChange.toFixed(1)}%
+            </span>
             <span className="text-sm text-gray-500 ml-1">vs last month</span>
           </div>
         </div>
@@ -180,7 +250,9 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center">
             <FiTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-sm font-medium text-green-600">+5%</span>
+            <span className="text-sm font-medium text-green-600">
+              {agentPercentChange > 0 ? '+' : ''}{agentPercentChange.toFixed(1)}%
+            </span>
             <span className="text-sm text-gray-500 ml-1">vs last month</span>
           </div>
         </div>
@@ -203,17 +275,17 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center">
             <FiTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-sm font-medium text-green-600">+8%</span>
+            <span className="text-sm font-medium text-green-600">
+              {revenuePercentChange > 0 ? '+' : ''}{revenuePercentChange.toFixed(1)}%
+            </span>
             <span className="text-sm text-gray-500 ml-1">vs last month</span>
           </div>
         </div>
-        {/* Accepted Loans */}
+        {/* Approved Loans */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Accepted Loans
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Approved Loans</p>
               <p className="text-2xl font-bold text-gray-900">
                 {acceptedLoansLoading ? (
                   <span className="animate-pulse">-</span>
@@ -222,13 +294,15 @@ export default function AdminDashboard() {
                 )}
               </p>
             </div>
-            <div className="p-3 bg-purple-500 rounded-lg">
-              <FiCreditCard className="w-6 h-6 text-white" />
+            <div className="p-3 bg-indigo-500 rounded-lg">
+              <FiCheckCircle className="w-6 h-6 text-white" />
             </div>
           </div>
           <div className="flex items-center">
             <FiTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-sm font-medium text-green-600">+15%</span>
+            <span className="text-sm font-medium text-green-600">
+              {approvedLoansPercentChange > 0 ? '+' : ''}{approvedLoansPercentChange.toFixed(1)}%
+            </span>
             <span className="text-sm text-gray-500 ml-1">vs last month</span>
           </div>
         </div>
@@ -241,7 +315,7 @@ export default function AdminDashboard() {
                 {expensesLoading ? (
                   <span className="animate-pulse">-</span>
                 ) : (
-                  `₹${expenses.toLocaleString()}`
+                  `₹${expenses?.toLocaleString?.() ?? expenses}`
                 )}
               </p>
             </div>
@@ -250,8 +324,10 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center">
-            <FiTrendingDown className="w-4 h-4 text-red-500 mr-1" />
-            <span className="text-sm font-medium text-red-600">-3%</span>
+            <FiTrendingUp className="w-4 h-4 text-green-500 mr-1" />
+            <span className="text-sm font-medium text-green-600">
+              {expensesPercentChange > 0 ? '+' : ''}{expensesPercentChange.toFixed(1)}%
+            </span>
             <span className="text-sm text-gray-500 ml-1">vs last month</span>
           </div>
         </div>
@@ -322,16 +398,8 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Total Principal Amount
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">-</span>
-                ) : (
-                  `₹${(dashboardStats.totalPrincipal || 0).toLocaleString()}`
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Principal Amount</p>
+              <p className="text-2xl font-bold text-gray-900">₹{principal.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-blue-600 rounded-lg">
               <FiBarChart2 className="w-6 h-6 text-white" />
@@ -342,16 +410,8 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Amount Recovered
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">-</span>
-                ) : (
-                  `₹${(dashboardStats.amountRecovered || 0).toLocaleString()}`
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Amount Recovered</p>
+              <p className="text-2xl font-bold text-gray-900">₹{recovered.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-green-600 rounded-lg">
               <FiTrendingUp className="w-6 h-6 text-white" />
@@ -362,16 +422,8 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Interest Earned
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">-</span>
-                ) : (
-                  `₹${(dashboardStats.interestEarned || 0).toLocaleString()}`
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Interest Earned</p>
+              <p className="text-2xl font-bold text-gray-900">₹{interest.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-yellow-600 rounded-lg">
               <FiDollarSign className="w-6 h-6 text-white" />
@@ -382,19 +434,23 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Today's EMIs Count
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">-</span>
-                ) : (
-                  dashboardStats.todaysEmisCount || 0
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Today's EMIs Count</p>
+              <p className="text-2xl font-bold text-gray-900">{todaysEmis}</p>
             </div>
             <div className="p-3 bg-indigo-600 rounded-lg">
               <FiCalendar className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+        {/* EMIs Due Today (Unpaid) */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">EMIs Due Today (Unpaid)</p>
+              <p className="text-2xl font-bold text-gray-900">{todaysUnpaidEmis}</p>
+            </div>
+            <div className="p-3 bg-indigo-500 rounded-lg">
+              <FiClock className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
@@ -402,16 +458,8 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                All Penalties/Charges
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">-</span>
-                ) : (
-                  `₹${(dashboardStats.totalPenalties || 0).toLocaleString()}`
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">All Penalties/Charges</p>
+              <p className="text-2xl font-bold text-gray-900">₹{penalties.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-red-600 rounded-lg">
               <FiTrendingDown className="w-6 h-6 text-white" />
@@ -422,16 +470,9 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">
-                Overdue EMIs
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {dashboardStatsLoading ? (
-                  <span className="animate-pulse">-</span>
-                ) : (
-                  dashboardStats.overdueEmisCount || 0
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Overdue EMIs</p>
+              <p className="text-2xl font-bold text-gray-900">{overdueEmis}</p>
+              <p className="text-xs text-gray-500">Amount: ₹{overdueEmisAmount.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-orange-600 rounded-lg">
               <FiAlertTriangle className="w-6 h-6 text-white" />

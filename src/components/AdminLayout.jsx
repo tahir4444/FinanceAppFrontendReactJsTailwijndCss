@@ -256,6 +256,7 @@ const AdminSidebarLayout = () => {
                       My Profile
                     </button>
 
+                    {/*
                     <button
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={handleSettingsClick}
@@ -274,6 +275,7 @@ const AdminSidebarLayout = () => {
                         3
                       </span>
                     </button>
+                   
 
                     <button
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -282,7 +284,7 @@ const AdminSidebarLayout = () => {
                       <FiHelpCircle className="w-4 h-4 mr-3 text-gray-500" />
                       Help & Support
                     </button>
-
+ */}
                     <div className="border-t border-gray-100 my-2"></div>
 
                     <button

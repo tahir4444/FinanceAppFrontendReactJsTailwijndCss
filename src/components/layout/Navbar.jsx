@@ -63,11 +63,13 @@ const Navbar = () => {
                     Todos
                   </Link>
                 </li>
+                {/*
                 <li className="nav-item">
                   <Link className="nav-link" to="/notifications">
                     Notifications
                   </Link>
                 </li>
+                */}
                 {user &&
                   (user.role === 'admin' || user.role === 'superadmin') && (
                     <li className="nav-item">
