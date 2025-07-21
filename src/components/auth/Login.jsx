@@ -9,9 +9,8 @@ const Login = memo(() => {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    watch,
   } = useForm({
-    mode: 'onBlur', // Only validate on blur, not on every keystroke
+    mode: 'onBlur',
   });
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ const Login = memo(() => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/admin/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
@@ -31,19 +30,15 @@ const Login = memo(() => {
     }
   }, [login]);
 
-  const emailValue = watch('email', '');
-  const passwordValue = watch('password', '');
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
-      {/* Email Field with Floating Label */}
-      <div className="relative">
+      {/* Email Field */}
+      <div>
+        <label htmlFor="email" className="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
         <input
           id="email"
           type="email"
-          className={`peer w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-gray-50 placeholder-transparent ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-gray-50 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
           {...register('email', {
             required: 'Email is required',
             pattern: {
@@ -51,113 +46,57 @@ const Login = memo(() => {
               message: 'Invalid email address',
             },
           })}
-          placeholder="Email Address"
+          placeholder="Enter your email"
+          autoComplete="email"
         />
-        <label
-          htmlFor="email"
-          className={`absolute left-4 top-3 text-gray-400 bg-white px-1 transition-all duration-200 pointer-events-none
-            peer-placeholder-shown:top-3 peer-placeholder-shown:text-gray-400
-            peer-focus:-top-3 peer-focus:text-xs peer-focus:text-blue-600
-            ${emailValue ? '-top-3 text-xs text-blue-600' : ''}`}
-        >
-          Email Address
-        </label>
         {errors.email && (
-          <div className="text-red-500 text-xs mt-1">
-            {errors.email.message}
-          </div>
+          <div className="text-red-500 text-xs mt-1">{errors.email.message}</div>
         )}
       </div>
 
-      {/* Password Field with Floating Label */}
-      <div className="relative">
-        <input
-          id="password"
-          type={showPassword ? 'text' : 'password'}
-          className={`peer w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-gray-50 placeholder-transparent pr-10 ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
-          {...register('password', {
-            required: 'Password is required',
-            minLength: {
-              value: 6,
-              message: 'Password must be at least 6 characters',
-            },
-          })}
-          placeholder="Password"
-        />
-        <label
-          htmlFor="password"
-          className={`absolute left-4 top-3 text-gray-400 bg-white px-1 transition-all duration-200 pointer-events-none
-            peer-placeholder-shown:top-3 peer-placeholder-shown:text-gray-400
-            peer-focus:-top-3 peer-focus:text-xs peer-focus:text-blue-600
-            ${passwordValue ? '-top-3 text-xs text-blue-600' : ''}`}
-        >
-          Password
-        </label>
-        <button
-          type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
-          tabIndex={-1}
-          onClick={() => setShowPassword((prev) => !prev)}
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-        >
-          {showPassword ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.98 8.223A10.477 10.477 0 001.934 12.001C3.226 16.273 7.24 19.5 12 19.5c1.658 0 3.237-.335 4.646-.94M21.07 15.977A10.45 10.45 0 0022.066 12c-1.292-4.273-5.306-7.5-10.066-7.5-1.522 0-2.98.304-4.28.85M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 3l18 18"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.274.86-.7 1.664-1.25 2.385M15.54 15.54A5.978 5.978 0 0112 17c-3.314 0-6-2.686-6-6 0-.795.155-1.552.437-2.24"
-              />
-            </svg>
-          )}
-        </button>
-        <div className="flex justify-between items-center mt-2">
-          <div>
-            {errors.password && (
-              <div className="text-red-500 text-xs mt-1">
-                {errors.password.message}
-              </div>
-            )}
-          </div>
-          <Link
-            to="/forgot-password"
-            className="text-xs text-blue-600 hover:underline"
+      {/* Password Field */}
+      <div>
+        <label htmlFor="password" className="block mb-1 text-sm font-medium text-gray-700">Password</label>
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-gray-50 pr-10 ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
+            {...register('password', {
+              required: 'Password is required',
+              minLength: {
+                value: 6,
+                message: 'Password must be at least 6 characters',
+              },
+            })}
+            placeholder="Enter your password"
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+            tabIndex={-1}
+            onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            Forgot password?
-          </Link>
+            {showPassword ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12.001C3.226 16.273 7.24 19.5 12 19.5c1.658 0 3.237-.335 4.646-.94M21.07 15.977A10.45 10.45 0 0022.066 12c-1.292-4.273-5.306-7.5-10.066-7.5-1.522 0-2.98.304-4.28.85M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.274.86-.7 1.664-1.25 2.385M15.54 15.54A5.978 5.978 0 0112 17c-3.314 0-6-2.686-6-6 0-.795.155-1.552.437-2.24" />
+              </svg>
+            )}
+          </button>
+        </div>
+        {errors.password && (
+          <div className="text-red-500 text-xs mt-1">{errors.password.message}</div>
+        )}
+        <div className="flex justify-end mt-2">
+          <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">Forgot password?</Link>
         </div>
       </div>
 
@@ -168,12 +107,7 @@ const Login = memo(() => {
           id="remember-me"
           name="remember-me"
         />
-        <label
-          className="ml-2 block text-sm text-gray-600"
-          htmlFor="remember-me"
-        >
-          Remember me
-        </label>
+        <label className="ml-2 block text-sm text-gray-600" htmlFor="remember-me">Remember me</label>
       </div>
 
       <button
@@ -183,25 +117,9 @@ const Login = memo(() => {
       >
         {isSubmitting ? (
           <>
-            <svg
-              className="animate-spin h-5 w-5 mr-2 inline-block text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+            <svg className="animate-spin h-5 w-5 mr-2 inline-block text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             Signing in...
           </>

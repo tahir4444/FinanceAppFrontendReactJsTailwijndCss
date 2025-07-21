@@ -26,6 +26,7 @@ import AdminSidebarLayout from './components/AdminLayout';
 import NotificationsPage from './pages/NotificationsPage';
 import SendNotificationPage from './pages/SendNotificationPage';
 import AgentCollectionsReport from './pages/AgentCollectionsReport';
+import UpgradeManagementPage from './pages/UpgradeManagementPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -58,41 +59,57 @@ const App = () => {
   return (
     <div className="min-vh-100 bg-light">
       <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        {/* Ensure /admin/login and /admin/register are matched first */}
+        <Route path="/admin/login" element={<LoginPage />} />
+        <Route path="/admin/register" element={<RegisterPage />} />
+        {/* Redirect old admin URLs to new /admin URLs */}
+        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/users" element={<Navigate to="/admin/users" replace />} />
+        <Route path="/loans" element={<Navigate to="/admin/loans" replace />} />
+        <Route path="/expenses" element={<Navigate to="/admin/expenses" replace />} />
+        <Route path="/todos" element={<Navigate to="/admin/todos" replace />} />
+        <Route path="/roles" element={<Navigate to="/admin/roles" replace />} />
+        <Route path="/reports" element={<Navigate to="/admin/reports" replace />} />
+        <Route path="/support-messages" element={<Navigate to="/admin/support-messages" replace />} />
+        <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
+        <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="/support-help" element={<Navigate to="/admin/support-help" replace />} />
+        <Route path="/send-notification" element={<Navigate to="/admin/send-notification" replace />} />
+        <Route path="/loans/agent-collections" element={<Navigate to="/admin/loans/agent-collections" replace />} />
+        <Route path="/agent-collections" element={<Navigate to="/admin/agent-collections" replace />} />
         
         {/* Protected routes with role-based access */}
         <Route
-          path="/"
+          path="/admin"
           element={
             <ProtectedRoute>
-              <Navigate to="/dashboard" replace />
+              <Navigate to="/admin/dashboard" replace />
             </ProtectedRoute>
           }
         />
         
         {/* Admin-only routes with AdminSidebarLayout */}
         <Route
+          path="/admin"
           element={
             <ProtectedRoute>
               <AdminSidebarLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<AdminDashboard />} />
-          <Route path="/users" element={<UsersManager />} />
-          <Route path="/loans" element={<LoansPage />} />
-          <Route path="/expenses" element={<ExpensesPage />} />
-          <Route path="/todos" element={<TodosPage />} />
-          <Route path="/roles" element={<RolesManager />} />
-          <Route path="/reports" element={<CreditReportsPage />} />
-          <Route path="/support-messages" element={<SupportMessagesPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/support-help" element={<SupportHelpPage />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<UsersManager />} />
+          <Route path="loans" element={<LoansPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="todos" element={<TodosPage />} />
+          <Route path="roles" element={<RolesManager />} />
+          <Route path="reports" element={<CreditReportsPage />} />
+          <Route path="support-messages" element={<SupportMessagesPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="support-help" element={<SupportHelpPage />} />
           <Route
-            path="/send-notification"
+            path="send-notification"
             element={
               <ProtectedRoute requiredRoles={['admin', 'superadmin']}>
                 <div>
@@ -102,8 +119,13 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/loans/agent-collections" element={<AgentCollectionsReport />} />
-          <Route path="/agent-collections" element={<Navigate to="/loans/agent-collections" replace />} />
+          <Route path="loans/agent-collections" element={<AgentCollectionsReport />} />
+          <Route path="agent-collections" element={<Navigate to="loans/agent-collections" replace />} />
+          <Route path="upgrade-management" element={
+            <ProtectedRoute requiredRoles={['superadmin']}>
+              <UpgradeManagementPage />
+            </ProtectedRoute>
+          } />
         </Route>
 
         {/* Agent routes with AgentLayout */}
@@ -164,6 +186,8 @@ const App = () => {
             </div>
           }
         />
+        <Route path="/" element={<Navigate to="/admin/login" replace />} />
+        <Route path="*" element={<Navigate to="/admin/login" replace />} />
       </Routes>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import authService from '../services/auth.service';
 
@@ -10,6 +10,7 @@ const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -41,7 +42,9 @@ const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
-      navigate('/login');
+      if (location.pathname !== '/admin/login') {
+        navigate('/admin/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -54,21 +57,22 @@ const AuthProvider = ({ children }) => {
         localStorage.setItem('token', response.token);
         setUser(response.user);
         setIsAuthenticated(true);
-        toast.success('Login successful');
+        toast.success('Login successful', { toastId: 'login-success' });
         
         // Redirect based on user role
         const userRole = response.user?.role || response.user?.Role?.name;
         if (userRole === 'agent') {
           navigate('/agent-dashboard');
         } else {
-          navigate('/dashboard');
+          navigate('/admin/dashboard');
         }
       } else {
         throw new Error('Invalid login response');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.dismiss('login-error');
+      toast.error(error.response?.data?.message || 'Login failed', { toastId: 'login-error' });
       throw error;
     }
   };
@@ -80,20 +84,22 @@ const AuthProvider = ({ children }) => {
         localStorage.setItem('token', response.token);
         setUser(response.user);
         setIsAuthenticated(true);
-        toast.success('Registration successful');
+        toast.success('Registration successful', { toastId: 'register-success' });
         
         // Redirect based on user role
         const userRole = response.user?.role || response.user?.Role?.name;
         if (userRole === 'agent') {
           navigate('/agent-dashboard');
         } else {
-          navigate('/dashboard');
+          navigate('/admin/dashboard');
         }
       } else {
         throw new Error('Invalid registration response');
       }
     } catch (error) {
       console.error('Registration error:', error);
+      toast.dismiss('register-error');
+      toast.error(error.response?.data?.message || 'Registration failed', { toastId: 'register-error' });
       throw error;
     }
   };
@@ -107,8 +113,8 @@ const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
-      navigate('/login');
-      toast.success('Logged out successfully');
+      navigate('/admin/login');
+      toast.success('Logged out successfully', { toastId: 'logout-success' });
     }
   };
 
@@ -173,21 +179,26 @@ const AuthProvider = ({ children }) => {
   );
 };
 
-const useAuth = () => {
+function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
 
 const ProtectedRoute = ({ children, requiredRoles }) => {
   const { user, isAuthenticated, hasAnyRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!isAuthenticated || !user) {
-    navigate('/login');
-    return null;
+    if (location.pathname !== '/admin/login') {
+      navigate('/admin/login');
+      return null;
+    }
+    // If already on /admin/login, allow rendering
+    return children;
   }
 
   if (requiredRoles && !hasAnyRole(requiredRoles)) {

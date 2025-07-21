@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FiUsers,
   FiCreditCard,
@@ -86,6 +86,8 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const updateToastShown = useRef(false);
+  const upgradeTimerRef = useRef(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -291,40 +293,67 @@ export default function AdminDashboard() {
       const role = user?.role || user?.Role?.name;
       setIsSuperadmin(role === 'superadmin');
       setIsAdmin(role === 'admin');
-      // Show notification if update is required
-      if (res.data.status === 'required' || res.data.status === 'permitted') {
-        toast.info('A new app update is available!');
+      // Show notification if update is required, but only once
+      if (
+        (res.data.status === 'required' || res.data.status === 'permitted') &&
+        !updateToastShown.current
+      ) {
+        toast.info('A new app update is available!', { toastId: 'update-available' });
+        updateToastShown.current = true;
       }
     });
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    if (upgradeState === 'success') {
+      toast.success('App has been updated successfully!');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    }
+  }, [upgradeState]);
+
   const handleRequestUpgrade = async () => {
+    if (upgradeState === 'in_progress') return; // Prevent multiple upgrades
     setShowUpgradeModal(true);
     setUpgradeState('in_progress');
     setUpgradeProgress(0);
     let duration = 5000;
-    let fail = true;
-    if (updateStatus.status === 'permitted') {
-      duration = 10000;
-      fail = false;
-    }
-    const interval = 100;
+    let permitted = (updateStatus.status === 'permitted');
+    if (permitted) duration = 10000;
     let elapsed = 0;
-    const timer = setInterval(() => {
-      elapsed += interval;
+    if (upgradeTimerRef.current) clearInterval(upgradeTimerRef.current);
+    upgradeTimerRef.current = setInterval(() => {
+      elapsed += 100;
       setUpgradeProgress(Math.min(100, (elapsed / duration) * 100));
       if (elapsed >= duration) {
-        clearInterval(timer);
-        setUpgradeState(fail ? 'fail' : 'success');
-        setTimeout(() => setShowUpgradeModal(false), 2000);
+        clearInterval(upgradeTimerRef.current);
+        upgradeTimerRef.current = null;
+        if (!permitted) {
+          setUpgradeState('fail');
+          setTimeout(() => setShowUpgradeModal(false), 2000);
+          toast.error('Update failed: Permission not granted by superadmin.');
+        } else {
+          setUpgradeState('success');
+          setTimeout(() => setShowUpgradeModal(false), 2000);
+          axiosInstance.post('/update-status', { status: 'up_to_date' }).then(() => {
+            axiosInstance.get('/update-status').then(res => setUpdateStatus(res.data));
+          });
+        }
       }
-    }, interval);
-    // If permitted, send the update request
-    if (!fail) {
-      await axiosInstance.post('/update-status', { status: 'in_progress' });
-      await axiosInstance.post('/update-status', { status: 'up_to_date' });
-      // Optionally, refetch update status
-      axiosInstance.get('/update-status').then(res => setUpdateStatus(res.data));
+    }, 100);
+    // Only call backend if permitted
+    if (permitted) {
+      try {
+        await axiosInstance.post('/update-status', { status: 'in_progress' });
+      } catch (e) {
+        setUpgradeState('fail');
+        if (upgradeTimerRef.current) clearInterval(upgradeTimerRef.current);
+        upgradeTimerRef.current = null;
+        setTimeout(() => setShowUpgradeModal(false), 2000);
+        toast.error('Failed to start upgrade. Please try again.');
+        return;
+      }
     }
   };
 
@@ -337,6 +366,12 @@ export default function AdminDashboard() {
   const handleManageLoans = () => navigate('/loans');
   const handleManageExpenses = () => navigate('/expenses');
   const handleManageTasks = () => navigate('/todos');
+
+  useEffect(() => {
+    return () => {
+      if (upgradeTimerRef.current) clearInterval(upgradeTimerRef.current);
+    };
+  }, []);
 
   return (
     <>
@@ -897,56 +932,67 @@ export default function AdminDashboard() {
       </div>
       {/* App Upgrade Notification/Modal */}
       {updateStatus && (
-        <div className="mb-6 p-6 bg-gradient-to-r from-yellow-50 via-yellow-100 to-yellow-50 border-l-8 border-yellow-400 shadow-lg rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1">
+        <div className="mb-6 mt-10 p-6 bg-gradient-to-r from-yellow-50 via-yellow-100 to-yellow-50 border-l-8 border-yellow-400 shadow-lg rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 min-w-[350px] w-full">
+          <div className="flex items-center gap-4 flex-1 min-w-[250px]">
             <div className="flex items-center justify-center w-14 h-14 rounded-full bg-yellow-200 border-4 border-yellow-400 shadow">
               <FiSettings className="w-8 h-8 text-yellow-700" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg font-semibold text-yellow-900">App Version</span>
-                <span className="inline-block px-2 py-0.5 text-xs font-bold bg-gray-200 text-gray-700 rounded-full border border-gray-300">{updateStatus.current_version}</span>
-                {updateStatus.required_version && updateStatus.required_version !== updateStatus.current_version && (
+            <div className="min-w-[200px]">
+              {(() => {
+                // Support both snake_case and camelCase for backend compatibility
+                const currentVersion = (updateStatus.current_version ?? updateStatus.currentVersion ?? '').trim() || '1.0.0';
+                const requiredVersion = (updateStatus.required_version ?? updateStatus.requiredVersion ?? '').trim() || '';
+                const status = updateStatus.status ?? updateStatus.Status ?? '';
+                return (
                   <>
-                    <FiArrowRight className="w-4 h-4 text-yellow-600 mx-1" />
-                    <span className="inline-block px-2 py-0.5 text-xs font-bold bg-yellow-300 text-yellow-900 rounded-full border border-yellow-400 animate-pulse">{updateStatus.required_version}</span>
-                  </>
-                )}
-              </div>
-              <div className="text-sm text-yellow-800 mb-2">
-                {updateStatus.status === 'required' && 'A new update is available and requires superadmin approval.'}
-                {updateStatus.status === 'permitted' && 'Update permitted by superadmin. You can now update.'}
-                {updateStatus.status !== 'required' && updateStatus.status !== 'permitted' && 'Your app is up to date.'}
-              </div>
-              {/* Version selection dropdown for admin */}
-              {isAdmin && (
-                <div className="mt-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Select Version to Update:</label>
-                  <select
-                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
-                    value={updateStatus.required_version || updateStatus.current_version}
-                    disabled
-                  >
-                    <option value={updateStatus.current_version}>Current: {updateStatus.current_version}</option>
-                    {updateStatus.required_version && updateStatus.required_version !== updateStatus.current_version && (
-                      <option value={updateStatus.required_version}>Update: {updateStatus.required_version}</option>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg font-semibold text-yellow-900">App Version</span>
+                      <span className="inline-block px-2 py-0.5 text-xs font-bold bg-gray-200 text-gray-700 rounded-full border border-gray-300">{currentVersion}</span>
+                      {requiredVersion && requiredVersion !== currentVersion && (
+                        <>
+                          <FiArrowRight className="w-4 h-4 text-yellow-600 mx-1" />
+                          <span className="inline-block px-2 py-0.5 text-xs font-bold bg-yellow-300 text-yellow-900 rounded-full border border-yellow-400 animate-pulse">{requiredVersion}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-sm text-yellow-800 mb-2">
+                      {status === 'required' && requiredVersion && requiredVersion !== currentVersion && 'A new update is available and requires superadmin approval.'}
+                      {status === 'permitted' && requiredVersion && requiredVersion !== currentVersion && 'Update permitted by superadmin. You can now update.'}
+                      {(!requiredVersion || requiredVersion === currentVersion) && 'Your app is up to date.'}
+                    </div>
+                    {/* Version selection dropdown for admin */}
+                    {isAdmin && (
+                      <div className="mt-1 min-w-[180px]">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Select Version to Update:</label>
+                        <select
+                          className="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
+                          value={requiredVersion && requiredVersion !== currentVersion ? requiredVersion : currentVersion}
+                          onChange={() => {}} // keep enabled for UI consistency
+                          disabled={!requiredVersion || requiredVersion === currentVersion}
+                        >
+                          <option value={currentVersion}>Current: {currentVersion}</option>
+                          {requiredVersion && requiredVersion !== currentVersion && (
+                            <option value={requiredVersion}>Update: {requiredVersion}</option>
+                          )}
+                        </select>
+                      </div>
                     )}
-                  </select>
-                </div>
-              )}
+                  </>
+                );
+              })()}
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            {isAdmin && (
+            {isAdmin && (updateStatus.required_version ?? updateStatus.requiredVersion ?? '').trim() && (updateStatus.required_version ?? updateStatus.requiredVersion) !== (updateStatus.current_version ?? updateStatus.currentVersion) && (
               <button
-                className={`px-6 py-2 rounded-lg font-semibold shadow transition-colors text-white ${updateStatus.status === 'required' || updateStatus.status === 'permitted' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700' : 'bg-gray-300 cursor-not-allowed'}`}
+                className={`px-6 py-2 rounded-lg font-semibold shadow transition-colors text-white ${(updateStatus.status ?? updateStatus.Status) === 'required' || (updateStatus.status ?? updateStatus.Status) === 'permitted' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700' : 'bg-gray-300 cursor-not-allowed'}`}
                 onClick={handleRequestUpgrade}
-                disabled={updateStatus.status !== 'required' && updateStatus.status !== 'permitted'}
+                disabled={upgradeState === 'in_progress'}
               >
-                {updateStatus.status === 'required' || updateStatus.status === 'permitted' ? 'Update Now' : 'Up to Date'}
+                {upgradeState === 'in_progress' ? 'Updating...' : (updateStatus.status ?? updateStatus.Status) === 'required' || (updateStatus.status ?? updateStatus.Status) === 'permitted' ? 'Update Now' : 'Up to Date'}
               </button>
             )}
-            {isSuperadmin && updateStatus.status === 'required' && (
+            {isSuperadmin && (updateStatus.status ?? updateStatus.Status) === 'required' && (updateStatus.required_version ?? updateStatus.requiredVersion ?? '').trim() && (updateStatus.required_version ?? updateStatus.requiredVersion) !== (updateStatus.current_version ?? updateStatus.currentVersion) && (
               <button
                 className="px-6 py-2 rounded-lg font-semibold shadow bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
                 onClick={handleApproveUpgrade}
@@ -967,7 +1013,7 @@ export default function AdminDashboard() {
                 style={{ width: `${upgradeProgress}%` }}
               ></div>
             </div>
-            {upgradeState === 'fail' && <div className="text-red-600">Upgrade not yet approved by superadmin. Please try again later.</div>}
+            {upgradeState === 'fail' && <div className="text-red-600">Update failed: Permission not granted by superadmin.</div>}
             {upgradeState === 'success' && <div className="text-green-600">Upgrade completed successfully!</div>}
             {upgradeState === 'in_progress' && <div className="text-gray-600">Please wait while the upgrade is processed...</div>}
           </div>

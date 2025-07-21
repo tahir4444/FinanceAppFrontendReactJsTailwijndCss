@@ -125,6 +125,11 @@ const AdminSidebarLayout = () => {
     navigate('/help');
   };
 
+  const handleUpgradeManagementClick = () => {
+    setDropdownOpen(false);
+    navigate('/admin/upgrade-management');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -254,6 +259,16 @@ const AdminSidebarLayout = () => {
 
                   {/* Dropdown Menu Items */}
                   <div className="py-2">
+                    {/* Only show for superadmin */}
+                    {role === 'superadmin' && (
+                      <button
+                        className="flex items-center w-full px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 transition-colors"
+                        onClick={handleUpgradeManagementClick}
+                      >
+                        <FiSettings className="w-4 h-4 mr-3 text-blue-500" />
+                        Upgrade Management
+                      </button>
+                    )}
                     <button
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={handleProfileClick}
