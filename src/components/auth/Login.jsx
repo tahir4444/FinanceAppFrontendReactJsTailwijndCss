@@ -26,7 +26,6 @@ const Login = memo(() => {
   const onSubmit = useCallback(async (data) => {
     try {
       await login(data.email, data.password);
-      toast.success('Logged in successfully');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Login failed');
     }

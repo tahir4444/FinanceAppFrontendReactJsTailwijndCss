@@ -67,6 +67,12 @@ const AdminSidebarLayout = () => {
 
   // Robust role check
   const role = user?.role || user?.Role?.name;
+  const filteredSidebarLinks = sidebarLinks.filter(link => {
+    if (link.to === '/roles') {
+      return role === 'superadmin';
+    }
+    return true;
+  });
   if (
     isAuthenticated &&
     role !== 'admin' &&
@@ -141,7 +147,7 @@ const AdminSidebarLayout = () => {
         </div>
         <nav className="px-4 py-6">
           <div className="space-y-2">
-            {sidebarLinks.map((link) => (
+            {filteredSidebarLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}

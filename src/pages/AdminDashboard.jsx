@@ -12,10 +12,16 @@ import {
   FiClock,
   FiCalendar,
   FiAlertTriangle,
+  FiSettings,
+  FiArrowRight,
 } from 'react-icons/fi';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../services/axios';
+import { toast } from 'react-toastify';
 
 export default function AdminDashboard() {
   const [userCount, setUserCount] = useState(null);
@@ -66,6 +72,18 @@ export default function AdminDashboard() {
     inflow60: null,
     inflow90: null,
   });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [recentError, setRecentError] = useState(null);
+  const [systemStatus, setSystemStatus] = useState({ overall: '', services: [] });
+  const [systemStatusLoading, setSystemStatusLoading] = useState(true);
+  const [systemStatusError, setSystemStatusError] = useState(null);
+  const [updateStatus, setUpdateStatus] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeProgress, setUpgradeProgress] = useState(0);
+  const [upgradeState, setUpgradeState] = useState('idle'); // idle | fail | success | in_progress
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -202,7 +220,123 @@ export default function AdminDashboard() {
     axiosInstance.get('/loans/financial-health').then(res => {
       setFinancialHealth(res.data);
     });
+    setRecentLoading(true);
+    axiosInstance
+      .get('/loans/dashboard/admin/recent-activities')
+      .then((res) => {
+        // Flatten and normalize activities for display
+        const activities = [];
+        (res.data.recentLoans || []).forEach((loan) => {
+          activities.push({
+            type: 'loan',
+            user: loan.customer?.name || 'Unknown',
+            detail: 'Loan Approved',
+            amount: loan.loan_amount,
+            time: loan.created_at,
+            color: 'green',
+          });
+        });
+        (res.data.recentPayments || []).forEach((emi) => {
+          activities.push({
+            type: 'payment',
+            user: emi.customer_name || 'Payment',
+            detail: 'Payment Received',
+            amount: emi.amount,
+            time: emi.paid_at,
+            color: 'green',
+          });
+        });
+        (res.data.recentBounces || []).forEach((emi) => {
+          activities.push({
+            type: 'bounce',
+            user: emi.customer_name || 'Payment',
+            detail: 'EMI Bounced',
+            amount: emi.amount,
+            time: emi.updated_at,
+            color: 'red',
+          });
+        });
+        (res.data.recentUsers || []).forEach((user) => {
+          activities.push({
+            type: 'user',
+            user: user.name || 'New User',
+            detail: 'User Registered',
+            amount: null,
+            time: user.created_at,
+            color: 'blue',
+          });
+        });
+        // Sort by time desc, take top 8
+        activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+        setRecentActivities(activities.slice(0, 8));
+        setRecentLoading(false);
+      })
+      .catch((err) => {
+        setRecentError('Failed to load recent activity');
+        setRecentLoading(false);
+      });
+    setSystemStatusLoading(true);
+    axiosInstance.get('/stats/system/status')
+      .then(res => {
+        setSystemStatus(res.data);
+        setSystemStatusLoading(false);
+      })
+      .catch(() => {
+        setSystemStatusError('Failed to load system status');
+        setSystemStatusLoading(false);
+      });
+    // Fetch update status
+    axiosInstance.get('/update-status').then(res => {
+      setUpdateStatus(res.data);
+      const role = user?.role || user?.Role?.name;
+      setIsSuperadmin(role === 'superadmin');
+      setIsAdmin(role === 'admin');
+      // Show notification if update is required
+      if (res.data.status === 'required' || res.data.status === 'permitted') {
+        toast.info('A new app update is available!');
+      }
+    });
   }, [isAuthenticated, navigate]);
+
+  const handleRequestUpgrade = async () => {
+    setShowUpgradeModal(true);
+    setUpgradeState('in_progress');
+    setUpgradeProgress(0);
+    let duration = 5000;
+    let fail = true;
+    if (updateStatus.status === 'permitted') {
+      duration = 10000;
+      fail = false;
+    }
+    const interval = 100;
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      elapsed += interval;
+      setUpgradeProgress(Math.min(100, (elapsed / duration) * 100));
+      if (elapsed >= duration) {
+        clearInterval(timer);
+        setUpgradeState(fail ? 'fail' : 'success');
+        setTimeout(() => setShowUpgradeModal(false), 2000);
+      }
+    }, interval);
+    // If permitted, send the update request
+    if (!fail) {
+      await axiosInstance.post('/update-status', { status: 'in_progress' });
+      await axiosInstance.post('/update-status', { status: 'up_to_date' });
+      // Optionally, refetch update status
+      axiosInstance.get('/update-status').then(res => setUpdateStatus(res.data));
+    }
+  };
+
+  const handleApproveUpgrade = async () => {
+    await axiosInstance.post('/update-status', { status: 'permitted' });
+    toast.success('Upgrade permitted for admin.');
+    axiosInstance.get('/update-status').then(res => setUpdateStatus(res.data));
+  };
+
+  const handleManageLoans = () => navigate('/loans');
+  const handleManageExpenses = () => navigate('/expenses');
+  const handleManageTasks = () => navigate('/todos');
 
   return (
     <>
@@ -436,18 +570,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-        {/* Interest Earned */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Interest Earned (excluding principal)</p>
-              <p className="text-2xl font-bold text-gray-900">₹{interest.toLocaleString()}</p>
-            </div>
-            <div className="p-3 bg-yellow-600 rounded-lg">
-              <FiDollarSign className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
         {/* Today's EMIs Count */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
@@ -583,7 +705,9 @@ export default function AdminDashboard() {
                 )}
               </span>
             </div>
-            <button className="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium">
+            <button className="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+              onClick={handleManageLoans}
+            >
               Manage Loans
             </button>
           </div>
@@ -625,7 +749,9 @@ export default function AdminDashboard() {
                 )}
               </span>
             </div>
-            <button className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium">
+            <button className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+              onClick={handleManageExpenses}
+            >
               Manage Expenses
             </button>
           </div>
@@ -667,7 +793,9 @@ export default function AdminDashboard() {
                 )}
               </span>
             </div>
-            <button className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium">
+            <button className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+              onClick={handleManageTasks}
+            >
               Manage Tasks
             </button>
           </div>
@@ -688,41 +816,44 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">John Doe</p>
-                  <p className="text-sm text-gray-600">Loan Approved</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-900">₹5,000</p>
-                  <p className="text-xs text-gray-500">2m ago</p>
-                </div>
+            {recentLoading ? (
+              <div className="text-gray-500">Loading...</div>
+            ) : recentError ? (
+              <div className="text-red-500">{recentError}</div>
+            ) : recentActivities.length === 0 ? (
+              <div className="text-gray-500">No recent activity.</div>
+            ) : (
+              <div className="space-y-4">
+                {recentActivities.map((activity, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        activity.color === 'green'
+                          ? 'bg-green-500'
+                          : activity.color === 'yellow'
+                          ? 'bg-yellow-500'
+                          : activity.color === 'red'
+                          ? 'bg-red-500'
+                          : 'bg-blue-500'
+                      }`}
+                    ></div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{activity.user}</p>
+                      <p className="text-sm text-gray-600">{activity.detail}</p>
+                    </div>
+                    <div className="text-right">
+                      {activity.amount !== null && (
+                        <p className="font-medium text-gray-900">₹{Number(activity.amount).toLocaleString()}</p>
+                      )}
+                      <p className="text-xs text-gray-500">{dayjs(activity.time).fromNow()}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">Jane Smith</p>
-                  <p className="text-sm text-gray-600">Payment Received</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-900">₹1,200</p>
-                  <p className="text-xs text-gray-500">10m ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">Bob Lee</p>
-                  <p className="text-sm text-gray-600">Expense Added</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-900">₹800</p>
-                  <p className="text-xs text-gray-500">1h ago</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
         {/* System Status */}
@@ -735,51 +866,113 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-green-600 font-medium">
-                  All Systems Operational
+                  {systemStatusLoading ? 'Loading...' : systemStatusError ? 'Error' : systemStatus.overall}
                 </span>
               </div>
             </div>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <div>
-                    <span className="font-medium text-gray-900">Database</span>
-                    <p className="text-sm text-gray-600">Operational</p>
+            {systemStatusLoading ? (
+              <div className="text-gray-500">Loading...</div>
+            ) : systemStatusError ? (
+              <div className="text-red-500">{systemStatusError}</div>
+            ) : (
+              <div className="space-y-4">
+                {systemStatus.services.map((service, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div>
+                        <span className="font-medium text-gray-900">{service.name}</span>
+                        <p className="text-sm text-gray-600">{service.status}</p>
+                      </div>
+                    </div>
+                    <span className="text-sm text-gray-600">{service.uptime} uptime</span>
                   </div>
-                </div>
-                <span className="text-sm text-gray-600">99.9% uptime</span>
+                ))}
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <div>
-                    <span className="font-medium text-gray-900">
-                      API Services
-                    </span>
-                    <p className="text-sm text-gray-600">Operational</p>
-                  </div>
-                </div>
-                <span className="text-sm text-gray-600">100% uptime</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <div>
-                    <span className="font-medium text-gray-900">
-                      Payment Gateway
-                    </span>
-                    <p className="text-sm text-gray-600">Operational</p>
-                  </div>
-                </div>
-                <span className="text-sm text-gray-600">99.8% uptime</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
+      {/* App Upgrade Notification/Modal */}
+      {updateStatus && (
+        <div className="mb-6 p-6 bg-gradient-to-r from-yellow-50 via-yellow-100 to-yellow-50 border-l-8 border-yellow-400 shadow-lg rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-yellow-200 border-4 border-yellow-400 shadow">
+              <FiSettings className="w-8 h-8 text-yellow-700" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg font-semibold text-yellow-900">App Version</span>
+                <span className="inline-block px-2 py-0.5 text-xs font-bold bg-gray-200 text-gray-700 rounded-full border border-gray-300">{updateStatus.current_version}</span>
+                {updateStatus.required_version && updateStatus.required_version !== updateStatus.current_version && (
+                  <>
+                    <FiArrowRight className="w-4 h-4 text-yellow-600 mx-1" />
+                    <span className="inline-block px-2 py-0.5 text-xs font-bold bg-yellow-300 text-yellow-900 rounded-full border border-yellow-400 animate-pulse">{updateStatus.required_version}</span>
+                  </>
+                )}
+              </div>
+              <div className="text-sm text-yellow-800 mb-2">
+                {updateStatus.status === 'required' && 'A new update is available and requires superadmin approval.'}
+                {updateStatus.status === 'permitted' && 'Update permitted by superadmin. You can now update.'}
+                {updateStatus.status !== 'required' && updateStatus.status !== 'permitted' && 'Your app is up to date.'}
+              </div>
+              {/* Version selection dropdown for admin */}
+              {isAdmin && (
+                <div className="mt-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Select Version to Update:</label>
+                  <select
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
+                    value={updateStatus.required_version || updateStatus.current_version}
+                    disabled
+                  >
+                    <option value={updateStatus.current_version}>Current: {updateStatus.current_version}</option>
+                    {updateStatus.required_version && updateStatus.required_version !== updateStatus.current_version && (
+                      <option value={updateStatus.required_version}>Update: {updateStatus.required_version}</option>
+                    )}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            {isAdmin && (
+              <button
+                className={`px-6 py-2 rounded-lg font-semibold shadow transition-colors text-white ${updateStatus.status === 'required' || updateStatus.status === 'permitted' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700' : 'bg-gray-300 cursor-not-allowed'}`}
+                onClick={handleRequestUpgrade}
+                disabled={updateStatus.status !== 'required' && updateStatus.status !== 'permitted'}
+              >
+                {updateStatus.status === 'required' || updateStatus.status === 'permitted' ? 'Update Now' : 'Up to Date'}
+              </button>
+            )}
+            {isSuperadmin && updateStatus.status === 'required' && (
+              <button
+                className="px-6 py-2 rounded-lg font-semibold shadow bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                onClick={handleApproveUpgrade}
+              >
+                <FiCheckCircle className="inline-block mr-2 -mt-1" /> Approve Upgrade
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">{upgradeState === 'fail' ? 'Upgrade Failed' : upgradeState === 'success' ? 'Upgrade Successful' : 'Processing Upgrade...'}</h2>
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
+              <div
+                className={`h-4 rounded-full ${upgradeState === 'fail' ? 'bg-red-500' : upgradeState === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}
+                style={{ width: `${upgradeProgress}%` }}
+              ></div>
+            </div>
+            {upgradeState === 'fail' && <div className="text-red-600">Upgrade not yet approved by superadmin. Please try again later.</div>}
+            {upgradeState === 'success' && <div className="text-green-600">Upgrade completed successfully!</div>}
+            {upgradeState === 'in_progress' && <div className="text-gray-600">Please wait while the upgrade is processed...</div>}
+          </div>
+        </div>
+      )}
     </>
   );
 }
