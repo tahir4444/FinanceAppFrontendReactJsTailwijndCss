@@ -86,6 +86,7 @@ const UsersManager = () => {
   const [referenceUser, setReferenceUser] = useState(null);
   const observer = useRef();
   const sentinelRef = useRef();
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const imageFields = [
     { key: 'profile_pic', label: 'Profile Picture' },
@@ -345,12 +346,42 @@ const UsersManager = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.email.trim() || !formData.roleId) {
-      toast.error('Please fill in all required fields');
-      return;
+    let errors = {};
+    // Name validation
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
     }
-    if (!editingUser && !formData.password) {
-      toast.error('Password is required for new users');
+    // Email validation
+    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!emailRegex.test(formData.email.trim())) {
+      errors.email = 'Invalid email address';
+    }
+    // Password validation (only for new users)
+    if (!editingUser) {
+      if (!formData.password) {
+        errors.password = 'Password is required for new users';
+      } else if (formData.password.length < 6) {
+        errors.password = 'Password must be at least 6 characters';
+      }
+    }
+    // Role validation
+    if (!formData.roleId) errors.roleId = 'Role is required';
+    // Mobile validation (Indian mobile: 10 digits, starts with 6-9)
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!formData.mobile.trim()) {
+      errors.mobile = 'Mobile is required';
+    } else if (!mobileRegex.test(formData.mobile.trim())) {
+      errors.mobile = 'Invalid mobile number';
+    }
+    // Reference customer validation
+    if (!formData.reference_customer_id) errors.reference_customer_id = 'Reference customer is required';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error('Please fix the errors in the form');
       return;
     }
     // Validate all files before submit
@@ -399,15 +430,23 @@ const UsersManager = () => {
 
     try {
       const submitData = new FormData();
+      console.log('Submitting reference_customer_id:', formData.reference_customer_id, typeof formData.reference_customer_id);
       Object.entries(formData).forEach(([key, value]) => {
         if (fileFields.includes(key)) {
           // Append if value is a File (new upload) or if it's a string (existing file path)
           if (value && (value instanceof File || typeof value === 'string')) {
             submitData.append(key, value);
           }
-        } else if (key !== 'agent_qr_code') {
-          // Exclude agent_qr_code from main form
-          submitData.append(key, value);
+        } else if (key === 'roleId') {
+          // Map roleId to role_id for backend compatibility
+          submitData.append('role_id', value);
+        } else if (key !== 'agent_qr_code' && key !== 'roleId') {
+          // For reference_customer_id, always send as number if present
+          if (key === 'reference_customer_id' && value) {
+            submitData.append(key, Number(value));
+          } else {
+            submitData.append(key, value);
+          }
         }
       });
 
@@ -454,7 +493,14 @@ const UsersManager = () => {
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving user:', error);
-      toast.error(error.response?.data?.message || 'Failed to save user');
+      const backendMsg = error.response?.data?.message;
+      if (backendMsg && backendMsg.toLowerCase().includes('reference customer')) {
+        setFieldErrors((prev) => ({ ...prev, reference_customer_id: backendMsg }));
+      }
+      if (backendMsg && backendMsg.toLowerCase().includes('mobile')) {
+        setFieldErrors((prev) => ({ ...prev, mobile: backendMsg }));
+      }
+      toast.error(backendMsg || 'Failed to save user');
     }
   };
 
@@ -816,6 +862,9 @@ const UsersManager = () => {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {fieldErrors.name && (
+                  <div className="text-red-600 text-sm mt-1">{fieldErrors.name}</div>
+                )}
               </div>
 
               {/* Email */}
@@ -835,6 +884,9 @@ const UsersManager = () => {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {fieldErrors.email && (
+                  <div className="text-red-600 text-sm mt-1">{fieldErrors.email}</div>
+                )}
               </div>
 
               {/* Password */}
@@ -856,6 +908,9 @@ const UsersManager = () => {
                   required={!editingUser}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {!editingUser && fieldErrors.password && (
+                  <div className="text-red-600 text-sm mt-1">{fieldErrors.password}</div>
+                )}
               </div>
 
               {/* Role */}
@@ -893,6 +948,9 @@ const UsersManager = () => {
                     </option>
                   ))}
                 </select>
+                {fieldErrors.roleId && (
+                  <div className="text-red-600 text-sm mt-1">{fieldErrors.roleId}</div>
+                )}
               </div>
 
               {/* Active Status */}
@@ -932,6 +990,9 @@ const UsersManager = () => {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {fieldErrors.mobile && (
+                  <div className="text-red-600 text-sm mt-1">{fieldErrors.mobile}</div>
+                )}
               </div>
 
               {/* Address */}
@@ -1218,11 +1279,9 @@ const UsersManager = () => {
                               onClick={() => {
                                 setFormData((prev) => ({
                                   ...prev,
-                                  reference_customer_id: u.id,
+                                  reference_customer_id: Number(u.id), // Ensure it's a number
                                 }));
-                                setReferenceUserSearch(
-                                  `${u.name} (${u.email})`
-                                );
+                                setReferenceUserSearch(`${u.name} (${u.email})`);
                                 setShowReferenceUserDropdown(false);
                               }}
                             >
@@ -1257,6 +1316,9 @@ const UsersManager = () => {
                     name="reference_customer_id"
                     value={formData.reference_customer_id || ''}
                   />
+                  {fieldErrors.reference_customer_id && (
+                    <div className="text-red-600 text-sm mt-1">{fieldErrors.reference_customer_id}</div>
+                  )}
                 </div>
               </div>
             </div>
