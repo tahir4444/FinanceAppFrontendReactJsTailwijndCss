@@ -6,11 +6,11 @@ export const login = async (email, password) => {
       email,
       password,
     });
-    if (!response.data || !response.data.user || !response.data.user.token) {
+    if (!response.data || !response.data.user || !response.data.token) {
       throw new Error('Invalid login response');
     }
     return {
-      token: response.data.user.token,
+      token: response.data.token,
       user: response.data.user,
     };
   } catch (error) {
