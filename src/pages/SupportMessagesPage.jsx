@@ -6,7 +6,7 @@ import {
 } from '../services/support.service';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
-import { FiMail, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { FiMail, FiCheckCircle, FiClock, FiAlertCircle, FiStar } from 'react-icons/fi';
 
 // Define status options
 const STATUS_OPTIONS = ['Pending', 'In-Progress', 'Resolved'];
@@ -254,6 +254,22 @@ const SupportMessagesPage = () => {
                       {/* Move customer name to the very left */}
                       <div className="text-sm text-gray-500 font-medium md:text-left md:min-w-[120px]">{message.user?.name || 'Unknown User'}</div>
                       <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{message.subject}</h3>
+                    </div>
+                    {/* Category and Rating */}
+                    <div className="flex items-center gap-4 mb-2">
+                      {message.category && (
+                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100">
+                          {message.category}
+                        </span>
+                      )}
+                      {message.category === 'Review & Ratings' && message.rating && (
+                        <span className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <FiStar key={i} className={i < message.rating ? 'text-yellow-400' : 'text-gray-300'} />
+                          ))}
+                          <span className="ml-1 text-xs text-gray-500">{message.rating}/5</span>
+                        </span>
+                      )}
                     </div>
                     <p className="text-gray-600 line-clamp-2 mb-3">{message.message}</p>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">

@@ -67,16 +67,9 @@ const AdminSidebarLayout = () => {
 
   // Robust role check
   const role = user?.role || user?.Role?.name;
-  const filteredSidebarLinks = sidebarLinks.filter(link => {
-    if (link.to === '/roles') {
-      return role === 'superadmin';
-    }
-    return true;
-  });
   if (
     isAuthenticated &&
-    role !== 'admin' &&
-    role !== 'superadmin'
+    !['admin', 'superadmin'].includes(role)
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -152,7 +145,7 @@ const AdminSidebarLayout = () => {
         </div>
         <nav className="px-4 py-6">
           <div className="space-y-2">
-            {filteredSidebarLinks.map((link) => (
+            {sidebarLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}

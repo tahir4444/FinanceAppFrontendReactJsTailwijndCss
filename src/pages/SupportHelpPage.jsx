@@ -161,6 +161,15 @@ const SupportHelpPage = () => {
     emergency: '+1 (555) 999-8888',
   };
 
+  const SUBJECT_OPTIONS = [
+    'Review & Ratings',
+    'App Error',
+    'Support/Complain',
+    'Payment Issue',
+    'Suggestions',
+    'Account Access Issue',
+  ];
+
   const handleFaqToggle = (index) => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
@@ -473,16 +482,25 @@ const SupportHelpPage = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Subject *
             </label>
-            <input
-              type="text"
-              required
-              value={contactForm.subject}
-              onChange={(e) =>
-                handleContactFormChange('subject', e.target.value)
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              placeholder="Brief description of your issue"
-            />
+            <div className="flex gap-2">
+              <select
+                value={contactForm.subject}
+                onChange={e => handleContactFormChange('subject', e.target.value)}
+                className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">Select a subject</option>
+                {SUBJECT_OPTIONS.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={contactForm.subject && !SUBJECT_OPTIONS.includes(contactForm.subject) ? contactForm.subject : ''}
+                onChange={e => handleContactFormChange('subject', e.target.value)}
+                className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Or enter a custom subject"
+              />
+            </div>
           </div>
 
           <div>
