@@ -406,7 +406,13 @@ const ProfilePage = () => {
       setAgentQrCodeUrl(res.data.agent_qr_code_url);
       toast.success('QR code updated successfully!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to upload QR code');
+      if (err.response?.status === 403) {
+        toast.error('You are not authorized to upload this QR code. Only the agent themselves or an admin/superadmin can upload the QR code.');
+      } else if (err.response?.data?.message?.toLowerCase().includes('agent')) {
+        toast.error('QR code can only be set for agents.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to upload QR code');
+      }
     } finally {
       setQrUploading(false);
     }
