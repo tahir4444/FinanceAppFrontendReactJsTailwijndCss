@@ -4,26 +4,30 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
     steps:
       - name: 🧾 Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: 🛠 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: 18
 
       - name: 📦 Install Dependencies
-        run: npm ci
+        run: npm install
+
+      - name: ✍️ Write .env file
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
+          echo "VITE_API_URL=https://backend.tahirmohd.com" >> .env
+          echo "FRONTEND_URL=https://finance.tahirmohd.com" >> .env
+
+      - name: 🔨 Build React App (Vite)
+        run: npm run build
 
       - name: 🧪 Debug List Build Output
         run: |
@@ -32,18 +36,8 @@ jobs:
           echo "📁 Contents of root/"
           ls -la .
 
-      # === Build and Deploy for Server 1 ===
-      - name: ✍️ Write .env file for Server 1
-        run: |
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
-          echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
-
-      - name: 🔨 Build React App (Vite) for Server 1
-        run: npm run build
-
       - name: 🚀 Deploy Build Contents via SCP (Server 1)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
@@ -54,7 +48,7 @@ jobs:
           rm: true
 
       - name: 🚀 Deploy .htaccess via SCP (Server 1)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
@@ -63,27 +57,18 @@ jobs:
           target: ${{ secrets.APP_PATH }}
           strip_components: 0
 
-      - name: 🔁 Reload Apache (Server 1)
-        uses: appleboy/ssh-action@v1.0.3
+      - name: 🔁 Restart Apache (Server 1)
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            sudo systemctl reload apache2
+            sudo systemctl restart apache2
 
-      # === Build and Deploy for Server 2 ===
-      - name: ✍️ Write .env file for Server 2
-        run: |
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
-          echo "FRONTEND_URL=${{ secrets.FRONTEND_URL_2 }}" >> .env
-
-      - name: 🔨 Build React App (Vite) for Server 2
-        run: npm run build
-
+      # === Second Server Deployment ===
       - name: 🚀 Deploy Build Contents via SCP (Server 2)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
@@ -94,7 +79,7 @@ jobs:
           rm: true
 
       - name: 🚀 Deploy .htaccess via SCP (Server 2)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
@@ -103,11 +88,11 @@ jobs:
           target: ${{ secrets.SERVER2_APP_PATH }}
           strip_components: 0
 
-      - name: 🔁 Reload Apache (Server 2)
-        uses: appleboy/ssh-action@v1.0.3
+      - name: 🔁 Restart Apache (Server 2)
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            sudo systemctl reload apache2
+            sudo systemctl restart apache2
