@@ -118,16 +118,19 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  // Helper to get the user's role regardless of backend structure
+  const getUserRole = () => user?.role || user?.Role?.name;
+
   const hasRole = (roleName) => {
-    return user?.role === roleName;
+    return getUserRole() === roleName;
   };
 
   const hasAnyRole = (roleNames) => {
-    return roleNames.includes(user?.role);
+    return roleNames.includes(getUserRole());
   };
 
   const hasAllRoles = (roleNames) => {
-    return roleNames.includes(user?.role);
+    return roleNames.includes(getUserRole());
   };
 
   const hasPermission = (resource, action) => {
