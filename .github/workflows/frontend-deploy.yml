@@ -42,6 +42,13 @@ jobs:
       - name: 🔨 Build React App (Vite) for Server 1
         run: npm run build
 
+      - name: 🧪 Debug List Build Output (Server 1)
+        run: |
+          echo "📁 Contents of dist/"
+          ls -la dist
+          echo "📁 Contents of root/"
+          ls -la .
+
       - name: 🚀 Deploy Build Contents via SCP (Server 1)
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -81,6 +88,13 @@ jobs:
 
       - name: 🔨 Build React App (Vite) for Server 2
         run: npm run build
+
+      - name: 🧪 Debug List Build Output (Server 2)
+        run: |
+          echo "📁 Contents of dist/"
+          ls -la dist
+          echo "📁 Contents of root/"
+          ls -la .
 
       - name: 🚀 Deploy Build Contents via SCP (Server 2)
         uses: appleboy/scp-action@v0.1.7
