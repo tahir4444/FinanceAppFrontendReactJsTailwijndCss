@@ -17,18 +17,20 @@ import {
   FiShield,
   FiBell,
   FiHelpCircle,
+  FiDownload,
 } from 'react-icons/fi';
 
 const sidebarLinks = [
-  { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
-  { to: '/users', icon: FiUsers, label: 'Users' },
-  { to: '/loans', icon: FiCreditCard, label: 'Loans' },
-  { to: '/expenses', icon: FiFileText, label: 'Expenses' },
-  { to: '/todos', icon: FiCheckSquare, label: 'Tasks' },
-  { to: '/roles', icon: FiSettings, label: 'Roles' },
-  { to: '/reports', icon: FiBarChart2, label: 'Reports' },
-  { to: '/support-messages', icon: FiFileText, label: 'Support' },
-  { to: '/loans/agent-collections', icon: FiCreditCard, label: 'Agent Collections' },
+  { to: 'dashboard', icon: FiHome, label: 'Dashboard' },
+  { to: 'users', icon: FiUsers, label: 'Users' },
+  { to: 'loans', icon: FiCreditCard, label: 'Loans' },
+  { to: 'expenses', icon: FiFileText, label: 'Expenses' },
+  { to: 'todos', icon: FiCheckSquare, label: 'Tasks' },
+  { to: 'roles', icon: FiSettings, label: 'Roles' },
+  { to: 'reports', icon: FiBarChart2, label: 'Reports' },
+  { to: 'support-messages', icon: FiFileText, label: 'Support' },
+  { to: 'loans/agent-collections', icon: FiCreditCard, label: 'Agent Collections' },
+  { to: 'app-updates', icon: FiDownload, label: 'App Updates' },
 ];
 
 const AdminSidebarLayout = () => {
@@ -67,6 +69,9 @@ const AdminSidebarLayout = () => {
 
   // Robust role check
   const role = user?.role || user?.Role?.name;
+  console.log('Current location:', location.pathname); // Debug log
+  console.log('User role:', role); // Debug log
+  
   if (
     isAuthenticated &&
     !['admin', 'superadmin'].includes(role)
@@ -100,27 +105,27 @@ const AdminSidebarLayout = () => {
 
   const handleProfileClick = () => {
     setDropdownOpen(false);
-    navigate('/profile');
+    navigate('profile');
   };
 
   const handleSettingsClick = () => {
     setDropdownOpen(false);
-    navigate('/settings');
+    navigate('settings');
   };
 
   const handleNotificationsClick = () => {
     setDropdownOpen(false);
-    navigate('/notifications');
+    navigate('notifications');
   };
 
   const handleHelpClick = () => {
     setDropdownOpen(false);
-    navigate('/help');
+    navigate('help');
   };
 
   const handleUpgradeManagementClick = () => {
     setDropdownOpen(false);
-    navigate('/admin/upgrade-management');
+    navigate('upgrade-management');
   };
 
   return (
@@ -149,15 +154,18 @@ const AdminSidebarLayout = () => {
               <NavLink
                 key={link.to}
                 to={link.to}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 rounded-lg border-r-4 transition-colors ${
-                    isActive || location.pathname === link.to
-                      ? 'text-gray-700 bg-blue-50 border-blue-500'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
-                  }`
-                }
-                end={link.to === '/dashboard'}
-                onClick={() => setSidebarOpen(false)}
+                                 className={({ isActive }) =>
+                   `flex items-center px-4 py-3 rounded-lg border-r-4 transition-colors ${
+                     isActive || location.pathname.endsWith(link.to)
+                       ? 'text-gray-700 bg-blue-50 border-blue-500'
+                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
+                   }`
+                 }
+                end={link.to === 'dashboard'}
+                onClick={() => {
+                  console.log('Navigating to:', link.to); // Debug log
+                  setSidebarOpen(false);
+                }}
               >
                 <link.icon className="w-5 h-5 mr-3" />
                 <span className="font-medium">{link.label}</span>
@@ -187,10 +195,10 @@ const AdminSidebarLayout = () => {
               >
                 <FiMenu className="w-5 h-5 text-gray-600" />
               </button>
-              <h2 className="text-xl font-semibold text-gray-900 capitalize">
-                {sidebarLinks.find((l) => l.to === location.pathname)?.label ||
-                  'Admin'}
-              </h2>
+                             <h2 className="text-xl font-semibold text-gray-900 capitalize">
+                 {sidebarLinks.find((l) => location.pathname.endsWith(l.to))?.label ||
+                   'Admin'}
+               </h2>
             </div>
             <div
               className="relative flex items-center space-x-3"

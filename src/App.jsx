@@ -27,9 +27,10 @@ import NotificationsPage from './pages/NotificationsPage';
 import SendNotificationPage from './pages/SendNotificationPage';
 import AgentCollectionsReport from './pages/AgentCollectionsReport';
 import UpgradeManagementPage from './pages/UpgradeManagementPage';
+import AppUpdatePage from './pages/AppUpdatePage';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, requiredRoles }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -44,7 +45,15 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/admin/login" />;
+  }
+
+  // Check role-based access if requiredRoles is specified
+  if (requiredRoles && requiredRoles.length > 0) {
+    const userRole = user.role || user.Role?.name;
+    if (!requiredRoles.includes(userRole)) {
+      return <Navigate to="/unauthorized" />;
+    }
   }
 
   return children;
@@ -126,6 +135,7 @@ const App = () => {
               <UpgradeManagementPage />
             </ProtectedRoute>
           } />
+          <Route path="app-updates" element={<AppUpdatePage />} />
         </Route>
 
         {/* Agent routes with AgentLayout */}
