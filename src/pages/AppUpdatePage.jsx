@@ -59,10 +59,19 @@ const AppUpdatePage = () => {
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
-    if (file && file.type === 'application/vnd.android.package-archive') {
+    // Check for APK MIME type or file extension
+    const isAPK = file && (
+      file.type === 'application/vnd.android.package-archive' ||
+      file.type === 'application/octet-stream' ||
+      file.name.toLowerCase().endsWith('.apk')
+    );
+    
+    if (isAPK) {
       setSelectedFile(file);
+      console.log('File selected:', file.name, 'Type:', file.type); // Debug log
     } else {
       toast.error('Please select a valid APK file');
+      console.log('Invalid file:', file?.name, 'Type:', file?.type); // Debug log
     }
   };
 
@@ -94,8 +103,16 @@ const AppUpdatePage = () => {
         loadFiles();
       }
     } catch (error) {
-      toast.error('Failed to upload APK');
       console.error('Error uploading:', error);
+      
+      // Show more specific error messages
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error.message) {
+        toast.error(`Upload failed: ${error.message}`);
+      } else {
+        toast.error('Failed to upload APK');
+      }
     } finally {
       setUploading(false);
     }
