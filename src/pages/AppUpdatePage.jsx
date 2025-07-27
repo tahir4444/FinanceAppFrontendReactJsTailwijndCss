@@ -5,17 +5,7 @@ import axios from '../services/axios';
 const AppUpdatePage = () => {
   console.log('AppUpdatePage component loaded'); // Debug log
   
-  const [config, setConfig] = useState({
-    android: {
-      currentVersion: '1.0.0',
-      minVersion: '1.0.0',
-      latestVersion: '1.0.0',
-      changelog: [],
-      forceUpdate: false,
-      releaseDate: new Date().toISOString().split('T')[0],
-      fileSize: '0 MB'
-    }
-  });
+  const [currentVersion, setCurrentVersion] = useState(null);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -23,42 +13,36 @@ const AppUpdatePage = () => {
   const [version, setVersion] = useState('');
   const [changelog, setChangelog] = useState('');
   const [forceUpdate, setForceUpdate] = useState(false);
+  const [minVersion, setMinVersion] = useState('');
 
   useEffect(() => {
-    loadConfig();
+    loadCurrentVersion();
     loadFiles();
   }, []);
 
-  const loadConfig = async () => {
+  const loadCurrentVersion = async () => {
     try {
-      console.log('Loading app update config...'); // Debug log
+      console.log('Loading current app version...'); // Debug log
       setLoading(true);
       const response = await axios.get('/admin/app-update/config');
-      console.log('Config response:', response.data); // Debug log
-             if (response.data.success) {
-         // Ensure we have the android config structure
-         const configData = response.data.data;
-         if (configData && configData.android) {
-           setConfig(configData);
-         } else {
-           console.log('No android config found, using default');
-           // Set default config if none exists
-           setConfig({
-             android: {
-               currentVersion: '1.0.0',
-               minVersion: '1.0.0',
-               latestVersion: '1.0.0',
-               changelog: [],
-               forceUpdate: false,
-               releaseDate: new Date().toISOString().split('T')[0],
-               fileSize: '0 MB'
-             }
-           });
-         }
-       }
+      console.log('Current version response:', response.data); // Debug log
+      
+      if (response.data.success && response.data.data.android) {
+        setCurrentVersion(response.data.data.android);
+      } else {
+        console.log('No current version found, using default');
+        setCurrentVersion({
+          version: '1.0.0',
+          minVersion: '1.0.0',
+          changelog: [],
+          forceUpdate: false,
+          releaseDate: new Date().toISOString().split('T')[0],
+          fileSize: '0 MB'
+        });
+      }
     } catch (error) {
-      console.error('Error loading config:', error);
-      toast.error('Failed to load configuration');
+      console.error('Error loading current version:', error);
+      toast.error('Failed to load current version');
     } finally {
       setLoading(false);
     }
@@ -104,6 +88,9 @@ const AppUpdatePage = () => {
       const formData = new FormData();
       formData.append('apk', selectedFile);
       formData.append('version', version);
+      formData.append('minVersion', minVersion);
+      formData.append('changelog', JSON.stringify(changelog.split('\n').filter(item => item.trim())));
+      formData.append('forceUpdate', forceUpdate);
 
       const response = await axios.post('/admin/app-update/upload', formData, {
         headers: {
@@ -112,12 +99,14 @@ const AppUpdatePage = () => {
       });
 
       if (response.data.success) {
-        toast.success('APK uploaded successfully');
+        toast.success('APK uploaded and version updated successfully');
         setSelectedFile(null);
         setVersion('');
-        setSelectedFile(null);
+        setChangelog('');
+        setForceUpdate(false);
+        setMinVersion('');
         document.getElementById('file-input').value = '';
-        loadConfig();
+        loadCurrentVersion();
         loadFiles();
       }
     } catch (error) {
@@ -136,28 +125,30 @@ const AppUpdatePage = () => {
     }
   };
 
-  const handleConfigUpdate = async () => {
+  const handleVersionUpdate = async () => {
     try {
       setLoading(true);
       const changelogArray = changelog.split('\n').filter(item => item.trim());
       
       const response = await axios.put('/admin/app-update/config', {
         platform: 'android',
-        version: config.android.latestVersion,
-        minVersion: config.android.minVersion,
+        version: version,
+        minVersion: minVersion,
         changelog: changelogArray,
-        forceUpdate: forceUpdate,
-        releaseDate: config.android.releaseDate
+        forceUpdate: forceUpdate
       });
 
       if (response.data.success) {
-        toast.success('Configuration updated successfully');
+        toast.success('Version updated successfully');
         setChangelog('');
-        loadConfig();
+        setVersion('');
+        setMinVersion('');
+        setForceUpdate(false);
+        loadCurrentVersion();
       }
     } catch (error) {
-      toast.error('Failed to update configuration');
-      console.error('Error updating config:', error);
+      toast.error('Failed to update version');
+      console.error('Error updating version:', error);
     } finally {
       setLoading(false);
     }
@@ -189,14 +180,14 @@ const AppUpdatePage = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">App Update Management</h1>
 
-        {/* Current Configuration */}
+        {/* Current Version Information */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Current Configuration</h2>
+          <h2 className="text-xl font-semibold mb-4">Current Version Information</h2>
           {loading ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             </div>
-          ) : (
+          ) : currentVersion ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -204,18 +195,7 @@ const AppUpdatePage = () => {
                 </label>
                 <input
                   type="text"
-                  value={config.android.currentVersion}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Latest Version
-                </label>
-                <input
-                  type="text"
-                  value={config.android.latestVersion}
+                  value={currentVersion.version}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   readOnly
                 />
@@ -226,7 +206,7 @@ const AppUpdatePage = () => {
                 </label>
                 <input
                   type="text"
-                  value={config.android.minVersion}
+                  value={currentVersion.minVersion}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   readOnly
                 />
@@ -237,7 +217,7 @@ const AppUpdatePage = () => {
                 </label>
                 <input
                   type="text"
-                  value={config.android.fileSize}
+                  value={currentVersion.fileSize}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   readOnly
                 />
@@ -248,7 +228,7 @@ const AppUpdatePage = () => {
                 </label>
                 <input
                   type="text"
-                  value={formatDate(config.android.releaseDate)}
+                  value={formatDate(currentVersion.releaseDate)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   readOnly
                 />
@@ -259,12 +239,14 @@ const AppUpdatePage = () => {
                 </label>
                 <input
                   type="text"
-                  value={config.android.forceUpdate ? 'Yes' : 'No'}
+                  value={currentVersion.forceUpdate ? 'Yes' : 'No'}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   readOnly
                 />
               </div>
             </div>
+          ) : (
+            <p className="text-gray-500">No version information available.</p>
           )}
         </div>
 
@@ -293,6 +275,18 @@ const AppUpdatePage = () => {
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
                 placeholder="e.g., 1.0.1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Minimum Version
+              </label>
+              <input
+                type="text"
+                value={minVersion}
+                onChange={(e) => setMinVersion(e.target.value)}
+                placeholder="e.g., 1.0.0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -330,10 +324,34 @@ const AppUpdatePage = () => {
           </div>
         </div>
 
-        {/* Update Configuration */}
+        {/* Update Version Only */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Update Configuration</h2>
+          <h2 className="text-xl font-semibold mb-4">Update Version Only</h2>
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Version Number
+              </label>
+              <input
+                type="text"
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                placeholder="e.g., 1.0.1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Minimum Version
+              </label>
+              <input
+                type="text"
+                value={minVersion}
+                onChange={(e) => setMinVersion(e.target.value)}
+                placeholder="e.g., 1.0.0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Changelog (one per line)
@@ -359,11 +377,11 @@ const AppUpdatePage = () => {
               </label>
             </div>
             <button
-              onClick={handleConfigUpdate}
-              disabled={loading}
+              onClick={handleVersionUpdate}
+              disabled={loading || !version}
               className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
             >
-              {loading ? 'Updating...' : 'Update Configuration'}
+              {loading ? 'Updating...' : 'Update Version'}
             </button>
           </div>
         </div>
