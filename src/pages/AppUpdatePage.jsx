@@ -35,9 +35,27 @@ const AppUpdatePage = () => {
       setLoading(true);
       const response = await axios.get('/admin/app-update/config');
       console.log('Config response:', response.data); // Debug log
-      if (response.data.success) {
-        setConfig(response.data.data);
-      }
+             if (response.data.success) {
+         // Ensure we have the android config structure
+         const configData = response.data.data;
+         if (configData && configData.android) {
+           setConfig(configData);
+         } else {
+           console.log('No android config found, using default');
+           // Set default config if none exists
+           setConfig({
+             android: {
+               currentVersion: '1.0.0',
+               minVersion: '1.0.0',
+               latestVersion: '1.0.0',
+               changelog: [],
+               forceUpdate: false,
+               releaseDate: new Date().toISOString().split('T')[0],
+               fileSize: '0 MB'
+             }
+           });
+         }
+       }
     } catch (error) {
       console.error('Error loading config:', error);
       toast.error('Failed to load configuration');
