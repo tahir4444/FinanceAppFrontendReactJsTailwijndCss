@@ -111,7 +111,11 @@ const App = () => {
           <Route path="loans" element={<LoansPage />} />
           <Route path="expenses" element={<ExpensesPage />} />
           <Route path="todos" element={<TodosPage />} />
-          <Route path="roles" element={<RolesManager />} />
+          <Route path="roles" element={
+            <ProtectedRoute requiredRoles={['superadmin']}>
+              <RolesManager />
+            </ProtectedRoute>
+          } />
           <Route path="reports" element={<CreditReportsPage />} />
           <Route path="support-messages" element={<SupportMessagesPage />} />
           <Route path="profile" element={<ProfilePage />} />
@@ -135,7 +139,11 @@ const App = () => {
               <UpgradeManagementPage />
             </ProtectedRoute>
           } />
-          <Route path="app-updates" element={<AppUpdatePage />} />
+          <Route path="app-updates" element={
+            <ProtectedRoute requiredRoles={['superadmin']}>
+              <AppUpdatePage />
+            </ProtectedRoute>
+          } />
         </Route>
 
         {/* Agent routes with AgentLayout */}
