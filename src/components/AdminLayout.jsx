@@ -20,19 +20,6 @@ import {
   FiDownload,
 } from 'react-icons/fi';
 
-const sidebarLinks = [
-  { to: 'dashboard', icon: FiHome, label: 'Dashboard' },
-  { to: 'users', icon: FiUsers, label: 'Users' },
-  { to: 'loans', icon: FiCreditCard, label: 'Loans' },
-  { to: 'expenses', icon: FiFileText, label: 'Expenses' },
-  { to: 'todos', icon: FiCheckSquare, label: 'Tasks' },
-  { to: 'roles', icon: FiSettings, label: 'Roles' },
-  { to: 'reports', icon: FiBarChart2, label: 'Reports' },
-  { to: 'support-messages', icon: FiFileText, label: 'Support' },
-  { to: 'loans/agent-collections', icon: FiCreditCard, label: 'Agent Collections' },
-  { to: 'app-updates', icon: FiDownload, label: 'App Updates' },
-];
-
 const AdminSidebarLayout = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,6 +27,26 @@ const AdminSidebarLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
+
+  // Get user role
+  const role = user?.role || user?.Role?.name;
+  const isSuperAdmin = role === 'superadmin';
+
+  // Define sidebar links with conditional rendering for super admin only
+  const sidebarLinks = [
+    { to: 'dashboard', icon: FiHome, label: 'Dashboard' },
+    { to: 'users', icon: FiUsers, label: 'Users' },
+    { to: 'loans', icon: FiCreditCard, label: 'Loans' },
+    { to: 'expenses', icon: FiFileText, label: 'Expenses' },
+    { to: 'todos', icon: FiCheckSquare, label: 'Tasks' },
+    // Roles - only for super admin
+    ...(isSuperAdmin ? [{ to: 'roles', icon: FiSettings, label: 'Roles' }] : []),
+    { to: 'reports', icon: FiBarChart2, label: 'Reports' },
+    { to: 'support-messages', icon: FiFileText, label: 'Support' },
+    { to: 'loans/agent-collections', icon: FiCreditCard, label: 'Agent Collections' },
+    // App Updates - only for super admin
+    ...(isSuperAdmin ? [{ to: 'app-updates', icon: FiDownload, label: 'App Updates' }] : []),
+  ];
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -68,7 +75,6 @@ const AdminSidebarLayout = () => {
   console.log('AdminSidebarLayout user:', user);
 
   // Robust role check
-  const role = user?.role || user?.Role?.name;
   console.log('Current location:', location.pathname); // Debug log
   console.log('User role:', role); // Debug log
   
