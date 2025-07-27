@@ -33,7 +33,7 @@ const AppUpdatePage = () => {
     try {
       console.log('Loading app update config...'); // Debug log
       setLoading(true);
-      const response = await axios.get('/api/admin/app-update/config');
+      const response = await axios.get('/admin/app-update/config');
       console.log('Config response:', response.data); // Debug log
       if (response.data.success) {
         setConfig(response.data.data);
@@ -48,7 +48,7 @@ const AppUpdatePage = () => {
 
   const loadFiles = async () => {
     try {
-      const response = await axios.get('/api/admin/app-update/files');
+      const response = await axios.get('/admin/app-update/files');
       if (response.data.success) {
         setFiles(response.data.data);
       }
@@ -78,7 +78,7 @@ const AppUpdatePage = () => {
       formData.append('apk', selectedFile);
       formData.append('version', version);
 
-      const response = await axios.post('/api/admin/app-update/upload', formData, {
+      const response = await axios.post('/admin/app-update/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -106,7 +106,7 @@ const AppUpdatePage = () => {
       setLoading(true);
       const changelogArray = changelog.split('\n').filter(item => item.trim());
       
-      const response = await axios.put('/api/admin/app-update/config', {
+      const response = await axios.put('/admin/app-update/config', {
         platform: 'android',
         version: config.android.latestVersion,
         minVersion: config.android.minVersion,
@@ -134,7 +134,7 @@ const AppUpdatePage = () => {
     }
 
     try {
-      const response = await axios.delete(`/api/admin/app-update/files/${filename}`);
+      const response = await axios.delete(`/admin/app-update/files/${filename}`);
       if (response.data.success) {
         toast.success('File deleted successfully');
         loadFiles();
