@@ -5,8 +5,8 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd(), '');
 
-  const apiUrl = env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-  const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  const backendBaseUrl = env.VITE_BACKEND_BASE_URL || 'http://localhost:5000';
 
   return {
     plugins: [react()],
@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': {
-          target: 'http://localhost:5000',
+          target: backendBaseUrl,
           changeOrigin: true,
           secure: false,
           configure: (proxy, options) => {
@@ -53,6 +53,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
+      'import.meta.env.VITE_BACKEND_BASE_URL': JSON.stringify(backendBaseUrl),
     },
   };
 });
