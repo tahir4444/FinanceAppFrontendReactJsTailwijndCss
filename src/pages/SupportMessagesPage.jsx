@@ -252,7 +252,14 @@ const SupportMessagesPage = () => {
                   <div className="flex-1">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-2">
                       {/* Move customer name to the very left */}
-                      <div className="text-sm text-gray-500 font-medium md:text-left md:min-w-[120px]">{message.user?.name || 'Unknown User'}</div>
+                      <div className="text-sm text-gray-500 font-medium md:text-left md:min-w-[120px]">
+                        {message.user?.name || 'Unknown User'}
+                        {message.user?.Role && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            Role: {message.user.Role.name}
+                          </div>
+                        )}
+                      </div>
                       <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{message.subject}</h3>
                     </div>
                     {/* Category and Rating */}
