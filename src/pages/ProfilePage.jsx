@@ -407,7 +407,7 @@ const ProfilePage = () => {
       toast.success('QR code updated successfully!');
     } catch (err) {
       if (err.response?.status === 403) {
-        toast.error('You are not authorized to upload this QR code. Only the agent themselves or an admin/superadmin can upload the QR code.');
+        toast.error('Only admins can upload agent QR codes.');
       } else if (err.response?.data?.message?.toLowerCase().includes('agent')) {
         toast.error('QR code can only be set for agents.');
       } else {
@@ -930,8 +930,21 @@ const ProfilePage = () => {
                 No QR code uploaded
               </div>
             )}
+            <p className="text-gray-500 text-sm text-center">
+              Contact admin to upload or change your QR code.
+            </p>
+          </div>
+        )}
+        {(user?.role === 'admin' || user?.role === 'superadmin' || user?.Role?.name === 'admin' || user?.Role?.name === 'superadmin') && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-8 flex flex-col items-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Agent QR Code Management
+            </h3>
+            <p className="text-gray-600 text-sm text-center mb-4">
+              You can upload QR codes for agents. Agents can only view their QR codes.
+            </p>
             <label className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-xl">
-              {qrUploading ? 'Uploading...' : 'Upload/Change QR Code'}
+              {qrUploading ? 'Uploading...' : 'Upload Agent QR Code'}
               <input
                 type="file"
                 accept="image/*"

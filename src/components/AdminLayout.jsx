@@ -73,10 +73,14 @@ const AdminSidebarLayout = () => {
 
   // DEBUG: Log user object
   console.log('AdminSidebarLayout user:', user);
+  console.log('AdminSidebarLayout isAuthenticated:', isAuthenticated);
+  console.log('AdminSidebarLayout isLoading:', isLoading);
 
   // Robust role check
   console.log('Current location:', location.pathname); // Debug log
   console.log('User role:', role); // Debug log
+  console.log('Is super admin:', isSuperAdmin);
+  console.log('Sidebar links:', sidebarLinks);
   
   if (
     isAuthenticated &&
@@ -156,27 +160,30 @@ const AdminSidebarLayout = () => {
         </div>
         <nav className="px-4 py-6">
           <div className="space-y-2">
-            {sidebarLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                                 className={({ isActive }) =>
-                   `flex items-center px-4 py-3 rounded-lg border-r-4 transition-colors ${
-                     isActive || location.pathname.endsWith(link.to)
-                       ? 'text-gray-700 bg-blue-50 border-blue-500'
-                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
-                   }`
-                 }
-                end={link.to === 'dashboard'}
-                onClick={() => {
-                  console.log('Navigating to:', link.to); // Debug log
-                  setSidebarOpen(false);
-                }}
-              >
-                <link.icon className="w-5 h-5 mr-3" />
-                <span className="font-medium">{link.label}</span>
-              </NavLink>
-            ))}
+            {sidebarLinks.map((link) => {
+              console.log('Rendering sidebar link:', link.to, link.label);
+              return (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 rounded-lg border-r-4 transition-colors ${
+                      isActive || location.pathname.endsWith(link.to)
+                        ? 'text-gray-700 bg-blue-50 border-blue-500'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
+                    }`
+                  }
+                  end={link.to === 'dashboard'}
+                  onClick={() => {
+                    console.log('Navigating to:', link.to); // Debug log
+                    setSidebarOpen(false);
+                  }}
+                >
+                  <link.icon className="w-5 h-5 mr-3" />
+                  <span className="font-medium">{link.label}</span>
+                </NavLink>
+              );
+            })}
           </div>
         </nav>
       </div>
