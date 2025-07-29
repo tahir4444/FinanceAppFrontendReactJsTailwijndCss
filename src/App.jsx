@@ -160,6 +160,7 @@ const App = () => {
           <Route path="/agent/notifications" element={<NotificationsPage />} />
           <Route path="/agent/profile" element={<ProfilePage />} />
           <Route path="/agent/settings" element={<SettingsPage />} />
+          <Route path="/agent/customers" element={<UsersManager />} />
         </Route>
 
         {/* User routes with global navbar */}

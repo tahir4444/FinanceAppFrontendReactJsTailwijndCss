@@ -88,6 +88,23 @@ const UsersManager = () => {
   const sentinelRef = useRef();
   const [fieldErrors, setFieldErrors] = useState({});
 
+  // Helper function to determine if form should be read-only for agents viewing customer details
+  const isReadOnly = () => {
+    return (user?.role === 'agent' || user?.Role?.name === 'agent') && editingUser;
+  };
+
+  // Filter users for agents (client-side filtering)
+  const filteredUsers = React.useMemo(() => {
+    const userRole = user?.role || user?.Role?.name;
+    if (userRole === 'agent' && search) {
+      return users.filter(user => 
+        user.name.toLowerCase().includes(search.toLowerCase()) ||
+        user.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    return users;
+  }, [users, search, user]);
+
   const imageFields = [
     { key: 'profile_pic', label: 'Profile Picture' },
     { key: 'pan_card', label: 'PAN Card' },
@@ -103,7 +120,7 @@ const UsersManager = () => {
       return;
     }
 
-    if (!hasAnyRole(['admin', 'superadmin'])) {
+    if (!hasAnyRole(['admin', 'superadmin', 'agent'])) {
       toast.error('You do not have permission to access this page');
       navigate('/dashboard');
       return;
@@ -147,20 +164,35 @@ const UsersManager = () => {
   ) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pageNum,
-        limit,
-      });
-      if (searchTerm) params.append('search', searchTerm);
-      if (role) params.append('role', role);
-      const response = await axiosInstance.get(`/users?${params.toString()}`);
-      if (append) {
-        setUsers((prev) => [...prev, ...response.data.users]);
+      const userRole = user?.role || user?.Role?.name;
+      
+      // For agents, use the visible users endpoint
+      if (userRole === 'agent') {
+        const response = await axiosInstance.get('/users/list/visible');
+        if (append) {
+          setUsers((prev) => [...prev, ...response.data.users]);
+        } else {
+          setUsers(response.data.users);
+        }
+        setTotal(response.data.users.length);
+        setTotalPages(1); // Agents get all their users at once
       } else {
-        setUsers(response.data.users);
+        // For admin/superadmin, use the regular paginated endpoint
+        const params = new URLSearchParams({
+          page: pageNum,
+          limit,
+        });
+        if (searchTerm) params.append('search', searchTerm);
+        if (role) params.append('role', role);
+        const response = await axiosInstance.get(`/users?${params.toString()}`);
+        if (append) {
+          setUsers((prev) => [...prev, ...response.data.users]);
+        } else {
+          setUsers(response.data.users);
+        }
+        setTotal(response.data.total);
+        setTotalPages(response.data.totalPages);
       }
-      setTotal(response.data.total);
-      setTotalPages(response.data.totalPages);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -524,7 +556,15 @@ const UsersManager = () => {
     setPage(1);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
-      setSearch(value);
+      const userRole = user?.role || user?.Role?.name;
+      if (userRole === 'agent') {
+        // For agents, filter the already loaded users client-side
+        setSearch(value);
+      } else {
+        // For admin/superadmin, use server-side search
+        setSearch(value);
+        fetchUsers(1, value, roleFilter);
+      }
     }, 400);
   };
 
@@ -669,43 +709,47 @@ const UsersManager = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">
-            Users Management
+            {user?.role === 'agent' || user?.Role?.name === 'agent' ? 'My Customers' : 'Users Management'}
           </h1>
           <p className="text-gray-600 mb-2">
-            Manage your application users and their roles. Add, edit, or remove
-            users as your team grows.
+            {user?.role === 'agent' || user?.Role?.name === 'agent' 
+              ? 'View and manage customers you have registered. You can see their details and documents.'
+              : 'Manage your application users and their roles. Add, edit, or remove users as your team grows.'
+            }
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-              placeholder="Search users by name or email..."
+              placeholder={user?.role === 'agent' || user?.Role?.name === 'agent' ? "Search customers by name or email..." : "Search users by name or email..."}
               value={search}
               onChange={handleSearchChange}
             />
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48"
-              value={roleFilter}
-              onChange={handleRoleFilterChange}
-            >
-              <option value="">All Roles</option>
-              {roles.map((role) => (
-                <option key={role.id || role._id} value={role.name}>
-                  {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
-                </option>
-              ))}
-            </select>
+            {(user?.role !== 'agent' && user?.Role?.name !== 'agent') && (
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48"
+                value={roleFilter}
+                onChange={handleRoleFilterChange}
+              >
+                <option value="">All Roles</option>
+                {roles.map((role) => (
+                  <option key={role.id || role._id} value={role.name}>
+                    {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold shadow self-start"
           onClick={() => handleOpenDialog()}
         >
-          + Add User
+          {user?.role === 'agent' || user?.Role?.name === 'agent' ? '+ Add Customer' : '+ Add User'}
         </button>
       </div>
       {/* User Table or Empty State */}
-      {users.length === 0 && !loading ? (
+      {(user?.role === 'agent' || user?.Role?.name === 'agent' ? filteredUsers.length === 0 : users.length === 0) && !loading ? (
         <EmptyState onAddClick={handleOpenDialog} />
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
@@ -718,9 +762,11 @@ const UsersManager = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
+                {(user?.role !== 'agent' && user?.Role?.name !== 'agent') && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Mobile
                 </th>
@@ -733,7 +779,7 @@ const UsersManager = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((u) => (
+              {(user?.role === 'agent' || user?.Role?.name === 'agent' ? filteredUsers : users).map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4 whitespace-nowrap flex items-center gap-3">
                     <img
@@ -751,9 +797,11 @@ const UsersManager = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-gray-700">
                     {u.email}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                    {u.Role?.name || u.role || '-'}
-                  </td>
+                  {(user?.role !== 'agent' && user?.Role?.name !== 'agent') && (
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                      {u.Role?.name || u.role || '-'}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-gray-700">
                     {u.mobile || '-'}
                   </td>
@@ -769,18 +817,29 @@ const UsersManager = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button
-                      className="text-blue-600 hover:text-blue-900 font-medium mr-3"
-                      onClick={() => handleOpenDialog(u)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="text-red-600 hover:text-red-900 font-medium"
-                      onClick={() => handleDelete(u.id)}
-                    >
-                      Delete
-                    </button>
+                    {(user?.role === 'agent' || user?.Role?.name === 'agent') ? (
+                      <button
+                        className="text-blue-600 hover:text-blue-900 font-medium"
+                        onClick={() => handleOpenDialog(u)}
+                      >
+                        View Details
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="text-blue-600 hover:text-blue-900 font-medium mr-3"
+                          onClick={() => handleOpenDialog(u)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="text-red-600 hover:text-red-900 font-medium"
+                          onClick={() => handleDelete(u.id)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -812,6 +871,18 @@ const UsersManager = () => {
           )}
         </div>
       )}
+      
+      {/* Summary for agents */}
+      {(user?.role === 'agent' || user?.Role?.name === 'agent') && !loading && (
+        <div className="mt-4 text-sm text-gray-600 text-center">
+          {search ? (
+            <span>Showing {filteredUsers.length} of {users.length} customers</span>
+          ) : (
+            <span>Total: {users.length} customers</span>
+          )}
+        </div>
+      )}
+      
       {/* Pagination or infinite scroll can be added here if needed */}
       {/* User dialog/modal code remains unchanged, but should be styled with Tailwind if shown */}
 
@@ -822,7 +893,10 @@ const UsersManager = () => {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-900">
-                {editingUser ? 'Edit User' : 'Add New User'}
+                {user?.role === 'agent' || user?.Role?.name === 'agent' 
+                  ? (editingUser ? 'Customer Details' : 'Add New Customer')
+                  : (editingUser ? 'Edit User' : 'Add New User')
+                }
               </h3>
               <button
                 onClick={handleCloseDialog}
@@ -860,7 +934,10 @@ const UsersManager = () => {
                   value={formData.name || ''}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly={isReadOnly()}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    isReadOnly() ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 />
                 {fieldErrors.name && (
                   <div className="text-red-600 text-sm mt-1">{fieldErrors.name}</div>
@@ -882,64 +959,70 @@ const UsersManager = () => {
                   value={formData.email || ''}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly={isReadOnly()}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    isReadOnly() ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 />
                 {fieldErrors.email && (
                   <div className="text-red-600 text-sm mt-1">{fieldErrors.email}</div>
                 )}
               </div>
 
-              {/* Password */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                  {editingUser
-                    ? 'New Password (leave blank to keep current)'
-                    : 'Password'}
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password || ''}
-                  onChange={handleInputChange}
-                  required={!editingUser}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {!editingUser && fieldErrors.password && (
-                  <div className="text-red-600 text-sm mt-1">{fieldErrors.password}</div>
-                )}
-              </div>
+              {/* Password - Hide for agents viewing customer details */}
+              {!isReadOnly() && (
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    {editingUser
+                      ? 'New Password (leave blank to keep current)'
+                      : 'Password'}
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password || ''}
+                    onChange={handleInputChange}
+                    required={!editingUser}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {!editingUser && fieldErrors.password && (
+                    <div className="text-red-600 text-sm mt-1">{fieldErrors.password}</div>
+                  )}
+                </div>
+              )}
 
-              {/* Role */}
-              <div>
-                <label
-                  htmlFor="roleId"
-                  className="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                  Role
-                </label>
-                {formData.roleId && (
-                  <div className="mb-2">
-                    <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded">
-                      Selected:{' '}
-                      {roles.find((r) => (r.id || r._id) === formData.roleId)
-                        ?.name || 'Role'}
-                    </span>
-                  </div>
-                )}
-                <select
-                  id="roleId"
-                  name="roleId"
-                  value={formData.roleId}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select a role</option>
-                  {roles.map((role) => (
+              {/* Role - Hide for agents since they only see customers */}
+              {(user?.role !== 'agent' && user?.Role?.name !== 'agent') && (
+                <div>
+                  <label
+                    htmlFor="roleId"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    Role
+                  </label>
+                  {formData.roleId && (
+                    <div className="mb-2">
+                      <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded">
+                        Selected:{' '}
+                        {roles.find((r) => (r.id || r._id) === formData.roleId)
+                          ?.name || 'Role'}
+                      </span>
+                    </div>
+                  )}
+                  <select
+                    id="roleId"
+                    name="roleId"
+                    value={formData.roleId}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select a role</option>
+                    {roles.map((role) => (
                     <option
                       key={role.id || role._id}
                       value={role.id || role._id}
@@ -953,25 +1036,27 @@ const UsersManager = () => {
                 )}
               </div>
 
-              {/* Active Status */}
-              <div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    name="is_active"
-                    checked={formData.is_active}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="is_active"
-                    className="ml-2 text-sm font-semibold text-gray-700"
-                  >
-                    Active
-                  </label>
+              {/* Active Status - Hide for agents viewing customer details */}
+              {!isReadOnly() && (
+                <div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      name="is_active"
+                      checked={formData.is_active}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label
+                      htmlFor="is_active"
+                      className="ml-2 text-sm font-semibold text-gray-700"
+                    >
+                      Active
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Mobile */}
               <div>
@@ -988,7 +1073,10 @@ const UsersManager = () => {
                   value={formData.mobile || ''}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly={isReadOnly()}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    isReadOnly() ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 />
                 {fieldErrors.mobile && (
                   <div className="text-red-600 text-sm mt-1">{fieldErrors.mobile}</div>
@@ -1010,7 +1098,10 @@ const UsersManager = () => {
                   onChange={handleInputChange}
                   rows="2"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly={isReadOnly()}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    isReadOnly() ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 />
               </div>
               {/* Profile Picture */}
@@ -1332,13 +1423,15 @@ const UsersManager = () => {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-              >
-                {editingUser ? 'Update' : 'Create'}
-              </button>
+              {!isReadOnly() && (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  {editingUser ? 'Update' : 'Create'}
+                </button>
+              )}
             </div>
           </div>
         </div>

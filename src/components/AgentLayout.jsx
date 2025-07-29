@@ -11,6 +11,7 @@ import {
   FiMenu,
   FiX,
   FiUser,
+  FiUsers,
   FiLogOut,
   FiShield,
   FiBell,
@@ -20,6 +21,7 @@ import {
 const agentSidebarLinks = [
   { to: '/agent-dashboard', icon: FiHome, label: 'Dashboard' },
   { to: '/agent/my-loans', icon: FiCreditCard, label: 'My Loans' },
+  { to: '/agent/customers', icon: FiUsers, label: 'My Customers' },
   { to: '/agent/expenses', icon: FiFileText, label: 'Expenses' },
   { to: '/agent/notifications', icon: FiBell, label: 'Notifications' },
   { to: '/agent/profile', icon: FiUser, label: 'Profile' },
