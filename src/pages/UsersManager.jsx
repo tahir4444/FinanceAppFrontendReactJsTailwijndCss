@@ -87,6 +87,13 @@ const UsersManager = () => {
   const observer = useRef();
   const sentinelRef = useRef();
   const [fieldErrors, setFieldErrors] = useState({});
+  
+  // Location tracking state
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [selectedUserForLocation, setSelectedUserForLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState(null);
 
   // Helper function to determine if form should be read-only for agents viewing customer details
   const isReadOnly = () => {
@@ -713,6 +720,77 @@ const UsersManager = () => {
     setViewModalIndex((prev) => (prev + 1) % viewModalImages.length);
   };
 
+  // Location tracking functions
+  const handleOpenLocationModal = async (user) => {
+    setSelectedUserForLocation(user);
+    setLocationModalOpen(true);
+    setLocationLoading(true);
+    setLocationError(null);
+    setUserLocation(null);
+
+    try {
+      const response = await axiosInstance.get(`/users/location/${user.id}`);
+      if (response.data.user) {
+        setUserLocation(response.data.user);
+      } else {
+        setLocationError('No location data available for this user');
+      }
+    } catch (error) {
+      console.error('Error fetching user location:', error);
+      if (error.response?.status === 403) {
+        setLocationError('Access denied. Only superadmin can view user locations.');
+      } else if (error.response?.status === 404) {
+        setLocationError('User location not found.');
+      } else {
+        setLocationError('Failed to load user location. Please try again.');
+      }
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const handleCloseLocationModal = () => {
+    setLocationModalOpen(false);
+    setSelectedUserForLocation(null);
+    setUserLocation(null);
+    setLocationError(null);
+  };
+
+  const handleRefreshLocation = async () => {
+    if (!selectedUserForLocation) return;
+    
+    setLocationLoading(true);
+    setLocationError(null);
+    
+    try {
+      const response = await axiosInstance.get(`/users/location/${selectedUserForLocation.id}`);
+      if (response.data.user) {
+        setUserLocation(response.data.user);
+      } else {
+        setLocationError('No location data available for this user');
+      }
+    } catch (error) {
+      console.error('Error refreshing user location:', error);
+      setLocationError('Failed to refresh location. Please try again.');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const handleOpenInMaps = (latitude, longitude) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCopyCoordinates = (latitude, longitude) => {
+    const coordinates = `${latitude}, ${longitude}`;
+    navigator.clipboard.writeText(coordinates).then(() => {
+      toast.success('Coordinates copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy coordinates');
+    });
+  };
+
   return (
     <>
       {/* Header */}
@@ -842,6 +920,16 @@ const UsersManager = () => {
                         >
                           Edit
                         </button>
+                        {/* Location button - only for superadmin */}
+                        {(user?.role === 'superadmin' || user?.Role?.name === 'superadmin') && (
+                          <button
+                            className="text-green-600 hover:text-green-900 font-medium mr-3"
+                            onClick={() => handleOpenLocationModal(u)}
+                            title="View Location"
+                          >
+                            <i className="bi bi-geo-alt-fill"></i> Location
+                          </button>
+                        )}
                         <button
                           className="text-red-600 hover:text-red-900 font-medium"
                           onClick={() => handleDelete(u.id)}
@@ -1554,7 +1642,7 @@ const UsersManager = () => {
                   <span className="ms-1">{referenceUser.address}</span>
                 </div>
                 {/* Google Maps Link if latitude and longitude are available */}
-                {false && referenceUser.latitude && referenceUser.longitude && (
+                {referenceUser.latitude && referenceUser.longitude && (
                   <div className="mb-2">
                     <span className="fw-semibold">Location:</span>{' '}
                     <a
@@ -1711,6 +1799,156 @@ const UsersManager = () => {
             }}
             tabIndex={0}
           />
+        </div>
+      )}
+
+      {/* Location Modal */}
+      {locationModalOpen && selectedUserForLocation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <i className="bi bi-geo-alt-fill text-green-600 text-lg"></i>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    User Location
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedUserForLocation.name}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefreshLocation}
+                  disabled={locationLoading}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Refresh Location"
+                >
+                  <i className={`bi bi-arrow-clockwise ${locationLoading ? 'animate-spin' : ''}`}></i>
+                </button>
+                <button
+                  onClick={handleCloseLocationModal}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Close"
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {locationLoading ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mb-4"></div>
+                  <p className="text-gray-600">Loading location data...</p>
+                </div>
+              ) : locationError ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <i className="bi bi-exclamation-triangle text-red-600 text-2xl"></i>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Error</h4>
+                  <p className="text-gray-600 text-center mb-4">{locationError}</p>
+                  <button
+                    onClick={handleRefreshLocation}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : userLocation ? (
+                <div className="space-y-6">
+                  {/* Location Status */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${userLocation.location_enabled ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                      <span className="text-sm font-medium text-gray-700">
+                        Location {userLocation.location_enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    {userLocation.location_updated_at && (
+                      <span className="text-xs text-gray-500">
+                        Updated: {new Date(userLocation.location_updated_at).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Coordinates */}
+                  {userLocation.latitude && userLocation.longitude ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <span className="font-mono text-sm">{userLocation.latitude}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <span className="font-mono text-sm">{userLocation.longitude}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Accuracy */}
+                      {userLocation.location_accuracy && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Accuracy</label>
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <span className="text-sm">{userLocation.location_accuracy} meters</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          onClick={() => handleOpenInMaps(userLocation.latitude, userLocation.longitude)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <i className="bi bi-map"></i>
+                          Open in Maps
+                        </button>
+                        <button
+                          onClick={() => handleCopyCoordinates(userLocation.latitude, userLocation.longitude)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        >
+                          <i className="bi bi-clipboard"></i>
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <i className="bi bi-geo-alt text-gray-400 text-2xl"></i>
+                      </div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">No Location Data</h4>
+                      <p className="text-gray-600 text-center">
+                        This user hasn't shared their location yet.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i className="bi bi-geo-alt text-gray-400 text-2xl"></i>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">No Location Data</h4>
+                  <p className="text-gray-600 text-center">
+                    Location information is not available for this user.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </>
