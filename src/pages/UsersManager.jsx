@@ -657,11 +657,18 @@ const UsersManager = () => {
     console.log('Opening image view modal for field:', fieldName);
     console.log('User data:', userData);
 
+    // Map field names to handle the agent_qr_code case
+    const fieldMapping = {
+      'agent_qr_code': 'agent_qr_code_url'
+    };
+
     imageFields.forEach((field, index) => {
-      const imageUrl = getImageUrl(userData[field.key]);
+      // Use the mapped field name if it exists, otherwise use the original
+      const actualFieldKey = fieldMapping[field.key] || field.key;
+      const imageUrl = getImageUrl(userData[actualFieldKey]);
       console.log(
-        `Field ${field.key}:`,
-        userData[field.key],
+        `Field ${field.key} (mapped to ${actualFieldKey}):`,
+        userData[actualFieldKey],
         '-> URL:',
         imageUrl
       );
@@ -671,7 +678,8 @@ const UsersManager = () => {
           label: field.label,
           field: field.key,
         });
-        if (field.key === fieldName) {
+        // Check if this is the field we're looking for (handle both original and mapped names)
+        if (field.key === fieldName || actualFieldKey === fieldName) {
           startIndex = images.length - 1; // Use the actual index in the images array
         }
       }
