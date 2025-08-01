@@ -1025,18 +1025,19 @@ const UsersManager = () => {
                   >
                     <option value="">Select a role</option>
                     {roles.map((role) => (
-                    <option
-                      key={role.id || role._id}
-                      value={role.id || role._id}
-                    >
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
+                      <option
+                        key={role.id || role._id}
+                        value={role.id || role._id}
+                      >
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
                 {fieldErrors.roleId && (
                   <div className="text-red-600 text-sm mt-1">{fieldErrors.roleId}</div>
                 )}
               </div>
+            )}
 
               {/* Active Status - Hide for agents viewing customer details */}
               {!isReadOnly() && (
