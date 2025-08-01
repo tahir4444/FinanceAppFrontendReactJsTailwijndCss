@@ -226,6 +226,8 @@ const UsersManager = () => {
 
   const handleOpenDialog = (user = null) => {
     if (user) {
+      console.log('🔍 Opening dialog for user:', user);
+      console.log('🔍 User agent_qr_code_url:', user.agent_qr_code_url);
       setEditingUser(user);
       // Robustly extract roleId
       const roleId =
@@ -243,7 +245,7 @@ const UsersManager = () => {
         voter_card: user.voter_card,
         adhaar_card: user.adhaar_card,
         bank_check: user.bank_check,
-        agent_qr_code: user.agent_qr_code,
+        agent_qr_code: user.agent_qr_code_url, // Fixed: Use agent_qr_code_url instead of agent_qr_code
         reference_customer_id: user.reference_customer_id,
       });
       const refUser = referenceUsers.find(
@@ -1310,6 +1312,10 @@ const UsersManager = () => {
                           alt="Agent QR Code"
                           className="w-20 h-20 rounded-lg border border-gray-200 object-cover cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => openImageViewModal('agent_qr_code')}
+                          onError={(e) => {
+                            console.error('Failed to load agent QR code image:', formData.agent_qr_code);
+                            e.target.style.display = 'none';
+                          }}
                         />
                         <button
                           type="button"
@@ -1321,6 +1327,11 @@ const UsersManager = () => {
                         </button>
                       </div>
                     )}
+                  {!formData.agent_qr_code && (
+                    <div className="mb-2 text-sm text-gray-500">
+                      No QR code uploaded yet
+                    </div>
+                  )}
                   <input
                     type="file"
                     id="agent_qr_code"
