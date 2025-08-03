@@ -28,7 +28,9 @@ function exportToCSV(data, filename) {
   if (!data || !data.length) return;
   // Flatten and map only relevant fields
   const flatData = data.map(row => ({
-    date: row.paid_at ? dayjs(row.paid_at).format('DD-MM-YY') : '-',
+    date: row.status === 'bounced' 
+      ? (row.bounced_at ? dayjs(row.bounced_at).format('DD-MM-YY') : '-')
+      : (row.paid_at ? dayjs(row.paid_at).format('DD-MM-YY') : '-'),
     agent_name: row.collector?.name || '',
     agent_mobile: row.collector?.mobile || '',
     customer_name: row.customer?.name || '',
@@ -102,7 +104,9 @@ const AgentCollectionsReport = () => {
     if (!item.collector) return;
     if (selectedAgent && item.collector.id !== selectedAgent) return;
     const agentKey = `${item.collector.id}|${item.collector.name}`;
-    const dateKey = item.paid_at ? dayjs(item.paid_at).format('YYYY-MM-DD') : '-';
+    const dateKey = item.status === 'bounced'
+      ? (item.bounced_at ? dayjs(item.bounced_at).format('YYYY-MM-DD') : '-')
+      : (item.paid_at ? dayjs(item.paid_at).format('YYYY-MM-DD') : '-');
     if (!grouped[agentKey]) grouped[agentKey] = {};
     if (!grouped[agentKey][dateKey]) grouped[agentKey][dateKey] = { total: 0, count: 0, agent: item.collector, date: dateKey };
     grouped[agentKey][dateKey].total += Number(item.amount);
@@ -306,7 +310,11 @@ const AgentCollectionsReport = () => {
               ) : (
                 collections.map((item, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition-colors duration-150">
-                    <td className="px-4 py-2 whitespace-nowrap font-mono text-gray-700">{item.paid_at ? dayjs(item.paid_at).format('DD-MM-YY') : '-'}</td>
+                    <td className="px-4 py-2 whitespace-nowrap font-mono text-gray-700">
+                      {item.status === 'bounced' 
+                        ? (item.bounced_at ? dayjs(item.bounced_at).format('DD-MM-YY') : '-')
+                        : (item.paid_at ? dayjs(item.paid_at).format('DD-MM-YY') : '-')}
+                    </td>
                     <td className="px-4 py-2 whitespace-nowrap">{item.collector ? <span className="font-semibold text-blue-700">{item.collector.name}</span> : '-'}<br /><span className="text-xs text-gray-500">{item.collector?.mobile}</span></td>
                     <td className="px-4 py-2 whitespace-nowrap">{item.customer ? <span className="font-semibold text-purple-700">{item.customer.name}</span> : '-'}<br /><span className="text-xs text-gray-500">{item.customer?.mobile}</span></td>
                     <td className="px-4 py-2 whitespace-nowrap font-mono">{item.loan_code || '-'}</td>

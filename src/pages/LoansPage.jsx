@@ -1320,9 +1320,11 @@ const LoansPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {/* Payment Date */}
-                            {emi.paid_at || emi.payment_date
-                              ? formatDate(emi.paid_at || emi.payment_date)
-                              : '-'}
+                            {emi.status === 'bounced' 
+                              ? (emi.bounced_at ? formatDate(emi.bounced_at) : '-')
+                              : (emi.paid_at || emi.payment_date
+                                ? formatDate(emi.paid_at || emi.payment_date)
+                                : '-')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             ₹

@@ -236,7 +236,11 @@ const MyLoansPage = () => {
                               {emi.status}
                             </span>
                           </td>
-                          <td>{emi.paid_at}</td>
+                          <td>
+                            {emi.status === 'bounced' 
+                              ? (emi.bounced_at ? formatDate(emi.bounced_at) : '-')
+                              : (emi.paid_at ? formatDate(emi.paid_at) : '-')}
+                          </td>
                           <td>{emi.bounced_reason || '-'}</td>
                         </tr>
                       ))}
