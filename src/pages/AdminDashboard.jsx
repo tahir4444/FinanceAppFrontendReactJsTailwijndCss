@@ -119,6 +119,10 @@ export default function AdminDashboard() {
       const curr = res.data.currentMonthCount || 0;
       const percent = last ? ((curr - last) / last) * 100 : 0;
       setUserPercentChange(percent);
+    }).catch(() => {
+      setCurrentMonthUsers(0);
+      setLastMonthUsers(0);
+      setUserPercentChange(0);
     });
     axiosInstance
       .get('/users?role=agent')
@@ -176,10 +180,23 @@ export default function AdminDashboard() {
       setOverdueEmisAmount(res.data.overdueEmisAmount || 0);
       setDashboardStats((prev) => ({ ...prev, ...res.data }));
       setDashboardStatsLoading(false);
+    }).catch(() => {
+      setPrincipal(0);
+      setRecovered(0);
+      setInterest(0);
+      setTodaysEmis(0);
+      setTodaysUnpaidEmis(0);
+      setPenalties(0);
+      setOverdueEmis(0);
+      setOverdueEmisAmount(0);
+      setDashboardStats({});
+      setDashboardStatsLoading(false);
     });
     // Fetch /expenses/dashboard for pendingClaims and categories
     axiosInstance.get('/expenses/dashboard').then(res => {
       setDashboardStats((prev) => ({ ...prev, ...res.data }));
+    }).catch(() => {
+      // Silently fail for expenses dashboard
     });
     // Fetch agent users monthly stats
     axiosInstance.get('/users/stats/agents/monthly').then(res => {
@@ -187,6 +204,8 @@ export default function AdminDashboard() {
       const curr = res.data.currentMonthCount || 0;
       const percent = last ? ((curr - last) / last) * 100 : 0;
       setAgentPercentChange(percent);
+    }).catch(() => {
+      setAgentPercentChange(0);
     });
     // Fetch revenue monthly stats
     axiosInstance.get('/stats/revenue/monthly').then(res => {
@@ -194,6 +213,8 @@ export default function AdminDashboard() {
       const curr = res.data.currentMonth || 0;
       const percent = last ? ((curr - last) / last) * 100 : 0;
       setRevenuePercentChange(percent);
+    }).catch(() => {
+      setRevenuePercentChange(0);
     });
     // Fetch approved loans monthly stats
     axiosInstance.get('/stats/loans/approved/monthly').then(res => {
@@ -201,6 +222,8 @@ export default function AdminDashboard() {
       const curr = res.data.currentMonth || 0;
       const percent = last ? ((curr - last) / last) * 100 : 0;
       setApprovedLoansPercentChange(percent);
+    }).catch(() => {
+      setApprovedLoansPercentChange(0);
     });
     // Fetch expenses monthly stats
     axiosInstance.get('/stats/expenses/monthly').then(res => {
@@ -217,10 +240,27 @@ export default function AdminDashboard() {
     // Fetch interest metrics alternatives
     axiosInstance.get('/stats/interest-metrics').then(res => {
       setInterestMetrics(res.data);
+    }).catch(() => {
+      setInterestMetrics({
+        interestCollectedThisMonth: 0,
+        expectedInterest: 0,
+        avgInterestRate: 0,
+        paidInterest: 0,
+        collectedVsExpected: 0,
+      });
     });
     // Fetch financial health metrics
     axiosInstance.get('/loans/financial-health').then(res => {
       setFinancialHealth(res.data);
+    }).catch(() => {
+      setFinancialHealth({
+        totalPrincipal: 0,
+        amountRecovered: 0,
+        interestEarned: 0,
+        inflow30: 0,
+        inflow60: 0,
+        inflow90: 0,
+      });
     });
     setRecentLoading(true);
     axiosInstance
@@ -301,8 +341,12 @@ export default function AdminDashboard() {
         toast.info('A new app update is available!', { toastId: 'update-available' });
         updateToastShown.current = true;
       }
+    }).catch(() => {
+      setUpdateStatus({ status: 'unknown' });
+      setIsSuperadmin(false);
+      setIsAdmin(false);
     });
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   useEffect(() => {
     if (upgradeState === 'success') {
@@ -366,6 +410,7 @@ export default function AdminDashboard() {
   const handleManageLoans = () => navigate('/loans');
   const handleManageExpenses = () => navigate('/expenses');
   const handleManageTasks = () => navigate('/todos');
+  const handleAgentCollections = () => navigate('/loans/agent-collections');
 
   useEffect(() => {
     return () => {
@@ -389,6 +434,31 @@ export default function AdminDashboard() {
       </div>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Agent Collections Quick Link */}
+        <div 
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl shadow-sm border border-gray-200 p-6 card-hover cursor-pointer transform transition-all duration-200 hover:scale-105"
+          onClick={handleAgentCollections}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-medium text-white mb-1">
+                Agent Collections
+              </p>
+              <p className="text-2xl font-bold text-white">
+                Quick Access
+              </p>
+            </div>
+            <div className="p-3 bg-white bg-opacity-20 rounded-lg">
+              <FiCreditCard className="w-6 h-6 text-white" />
+            </div>
+          </div>
+          <div className="flex items-center">
+            <FiArrowRight className="w-4 h-4 text-white mr-1" />
+            <span className="text-sm font-medium text-white">
+              View Collections
+            </span>
+          </div>
+        </div>
         {/* Total Users */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
