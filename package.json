@@ -1,6 +1,6 @@
 {
   "name": "finance-frontend",
-  "version": "1.0.1+103",
+  "version": "1.0.1+104",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
