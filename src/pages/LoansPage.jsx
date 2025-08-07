@@ -717,9 +717,13 @@ const LoansPage = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Status</option>
-            <option value="accepted">Accepted</option>
+            <option value="pending_acceptance">Pending Acceptance</option>
             <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
+            <option value="accepted">Accepted</option>
+            <option value="processing">Processing</option>
+            <option value="approved">Approved</option>
+            <option value="closed">Closed</option>
+            <option value="default">Default</option>
           </select>
           <select
             value={customerFilter}
