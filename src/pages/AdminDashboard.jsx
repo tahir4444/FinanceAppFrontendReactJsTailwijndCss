@@ -740,7 +740,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-600 mb-1">Average Amount to be Collected Today</p>
               <p className="text-2xl font-bold text-gray-900">₹{averageAmountToBeCollectedToday.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">Based on total principal + interest</p>
+              <p className="text-xs text-gray-500">Total EMIs due today (all statuses)</p>
             </div>
             <div className="p-3 bg-purple-600 rounded-lg">
               <FiDollarSign className="w-6 h-6 text-white" />
