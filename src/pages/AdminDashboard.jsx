@@ -57,6 +57,7 @@ export default function AdminDashboard() {
   const [penalties, setPenalties] = useState(0);
   const [overdueEmis, setOverdueEmis] = useState(0);
   const [overdueEmisAmount, setOverdueEmisAmount] = useState(0);
+  const [averageAmountToBeCollectedToday, setAverageAmountToBeCollectedToday] = useState(0);
   const [interestMetrics, setInterestMetrics] = useState({
     interestCollectedThisMonth: null,
     expectedInterest: null,
@@ -178,6 +179,7 @@ export default function AdminDashboard() {
       setPenalties(res.data.totalPenalties || 0);
               setOverdueEmis(res.data.allPendingEmisCount || 0);
         setOverdueEmisAmount(res.data.allPendingEmisAmount || 0);
+      setAverageAmountToBeCollectedToday(res.data.averageAmountToBeCollectedToday || 0);
       setDashboardStats((prev) => ({ ...prev, ...res.data }));
       setDashboardStatsLoading(false);
     }).catch(() => {
@@ -189,6 +191,7 @@ export default function AdminDashboard() {
       setPenalties(0);
       setOverdueEmis(0);
       setOverdueEmisAmount(0);
+      setAverageAmountToBeCollectedToday(0);
       setDashboardStats({});
       setDashboardStatsLoading(false);
     });
@@ -728,6 +731,19 @@ export default function AdminDashboard() {
             </div>
             <div className="p-3 bg-orange-600 rounded-lg">
               <FiAlertTriangle className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+        {/* Average Amount to be Collected Today */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Average Amount to be Collected Today</p>
+              <p className="text-2xl font-bold text-gray-900">₹{averageAmountToBeCollectedToday.toLocaleString()}</p>
+              <p className="text-xs text-gray-500">Based on total principal + interest</p>
+            </div>
+            <div className="p-3 bg-purple-600 rounded-lg">
+              <FiDollarSign className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
