@@ -134,6 +134,14 @@ const AgentCollectionsReport = () => {
       setCollections(res.data.results || []);
       setTotal(res.data.count || 0);
       setPage(res.data.page || 1);
+      
+      // Debug logging
+      console.log('🔍 [Frontend AgentCollections] Response:', {
+        resultsCount: res.data.results?.length || 0,
+        totalCount: res.data.count || 0,
+        page: res.data.page || 1,
+        limit: PAGE_SIZE
+      });
     } catch (err) {
       setError('Failed to fetch agent collections');
       setCollections([]);
@@ -341,7 +349,7 @@ const AgentCollectionsReport = () => {
             <span className="mx-2 font-semibold">Page {page}</span>
             <button
               onClick={() => handlePageChange(page + 1)}
-              disabled={page * PAGE_SIZE >= total}
+              disabled={collections.length < PAGE_SIZE}
               className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
             >Next</button>
           </div>
