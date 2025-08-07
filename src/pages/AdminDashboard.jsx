@@ -176,8 +176,8 @@ export default function AdminDashboard() {
       setTodaysEmis(res.data.todaysEmisCount || 0);
       setTodaysUnpaidEmis(res.data.todaysUnpaidEmisCount || 0);
       setPenalties(res.data.totalPenalties || 0);
-      setOverdueEmis(res.data.overdueEmisCount || 0);
-      setOverdueEmisAmount(res.data.overdueEmisAmount || 0);
+              setOverdueEmis(res.data.allPendingEmisCount || 0);
+        setOverdueEmisAmount(res.data.allPendingEmisAmount || 0);
       setDashboardStats((prev) => ({ ...prev, ...res.data }));
       setDashboardStatsLoading(false);
     }).catch(() => {
