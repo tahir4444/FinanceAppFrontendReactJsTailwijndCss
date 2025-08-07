@@ -249,9 +249,16 @@ export default function AdminDashboard() {
         collectedVsExpected: 0,
       });
     });
-    // Fetch financial health metrics
+    // Fetch financial health metrics (cash flow projection only)
     axiosInstance.get('/loans/financial-health').then(res => {
-      setFinancialHealth(res.data);
+      setFinancialHealth({
+        totalPrincipal: 0,
+        amountRecovered: 0,
+        interestEarned: 0,
+        inflow30: res.data.inflow30 || 0,
+        inflow60: res.data.inflow60 || 0,
+        inflow90: res.data.inflow90 || 0,
+      });
     }).catch(() => {
       setFinancialHealth({
         totalPrincipal: 0,
@@ -717,7 +724,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-600 mb-1">Pending EMIs</p>
               <p className="text-2xl font-bold text-gray-900">₹{overdueEmisAmount.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">Count: {overdueEmis}</p>
+              <p className="text-xs text-gray-500">EMIs: {overdueEmis}</p>
             </div>
             <div className="p-3 bg-orange-600 rounded-lg">
               <FiAlertTriangle className="w-6 h-6 text-white" />
@@ -731,15 +738,15 @@ export default function AdminDashboard() {
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-gray-700">Principal Recovered:</span>
-                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.totalPrincipal !== null ? financialHealth.totalPrincipal.toLocaleString() : '--'}</span>
+                <span className="font-bold text-2xl text-gray-900">₹{principal !== null ? principal.toLocaleString() : '--'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-700">Interest Earned:</span>
-                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.interestEarned !== null ? financialHealth.interestEarned.toLocaleString() : '--'}</span>
+                <span className="font-bold text-2xl text-gray-900">₹{interest !== null ? interest.toLocaleString() : '--'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-700">Total Recovered:</span>
-                <span className="font-bold text-2xl text-gray-900">₹{financialHealth.amountRecovered !== null ? financialHealth.amountRecovered.toLocaleString() : '--'}</span>
+                <span className="font-bold text-2xl text-gray-900">₹{recovered !== null ? recovered.toLocaleString() : '--'}</span>
               </div>
             </div>
           </div>
