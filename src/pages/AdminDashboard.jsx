@@ -715,9 +715,9 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Overdue EMIs</p>
-              <p className="text-2xl font-bold text-gray-900">{overdueEmis}</p>
-              <p className="text-xs text-gray-500">Amount: ₹{overdueEmisAmount.toLocaleString()}</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Pending EMIs</p>
+              <p className="text-2xl font-bold text-gray-900">₹{overdueEmisAmount.toLocaleString()}</p>
+              <p className="text-xs text-gray-500">Count: {overdueEmis}</p>
             </div>
             <div className="p-3 bg-orange-600 rounded-lg">
               <FiAlertTriangle className="w-6 h-6 text-white" />
