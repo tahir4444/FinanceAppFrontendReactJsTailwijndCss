@@ -318,51 +318,61 @@ const AgentCollectionsReport = () => {
         </h2>
         {error && <div className="text-red-600 mb-4">{error}</div>}
         {/* Top Pagination & Page Size Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <span className="ml-3 text-sm text-gray-600 hidden md:inline">Showing {from}-{to} of {total} records</span>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <span className="text-sm text-gray-600">Rows per page:</span>
-            <select
-              className="border border-gray-300 rounded-lg px-2 py-1"
-              value={isCustomPageSize ? 'custom' : String(pageSize)}
-              onChange={handlePageSizeChange}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="custom">Custom…</option>
-            </select>
-            {isCustomPageSize && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  className="w-24 border border-gray-300 rounded-lg px-2 py-1"
-                  value={customPageSize}
-                  onChange={(e) => setCustomPageSize(e.target.value)}
-                  placeholder="e.g. 75"
-                />
-                <button
-                  onClick={applyCustomPageSize}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-lg"
-                >Apply</button>
+        <div className="mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              {/* Left: Range info */}
+              <div className="text-sm text-gray-600 order-2 md:order-1 text-center md:text-left">
+                Showing {from}-{to} of {total} records
               </div>
-            )}
-            
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <button
-              onClick={() => handlePageChange(page - 1)}
-              disabled={page <= 1}
-              className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
-            >Prev</button>
-            <span className="mx-2 font-semibold">Page {page} of {totalPages}</span>
-            <button
-              onClick={() => handlePageChange(page + 1)}
-              disabled={page >= totalPages}
-              className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
-            >Next</button>
+
+              {/* Center: Pager */}
+              <div className="order-1 md:order-2 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                  className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50"
+                >Prev</button>
+                <span className="mx-1 text-sm font-semibold">Page {page} of {totalPages}</span>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages}
+                  className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50"
+                >Next</button>
+              </div>
+
+              {/* Right: Page size */}
+              <div className="order-3 md:order-3 flex items-center gap-2 justify-center md:justify-end">
+                <span className="text-sm text-gray-600">Rows per page</span>
+                <select
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
+                  value={isCustomPageSize ? 'custom' : String(pageSize)}
+                  onChange={handlePageSizeChange}
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="custom">Custom…</option>
+                </select>
+                {isCustomPageSize && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      value={customPageSize}
+                      onChange={(e) => setCustomPageSize(e.target.value)}
+                      placeholder="e.g. 75"
+                    />
+                    <button
+                      onClick={applyCustomPageSize}
+                      className="px-2.5 py-1 bg-blue-600 text-white rounded-md text-sm"
+                    >Set</button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         {/* Export Button - top right (full width on mobile) */}
