@@ -462,14 +462,15 @@ const AgentCollectionsReport = () => {
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Loan Code</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Loan #</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">EMI #</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Amount (₹)</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-8">Loading...</td></tr>
+                <tr><td colSpan={8} className="text-center py-8">Loading...</td></tr>
               ) : collections.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8">No collections found.</td></tr>
+                <tr><td colSpan={8} className="text-center py-8">No collections found.</td></tr>
               ) : (
                 collections.map((item, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition-colors duration-150">
@@ -483,7 +484,14 @@ const AgentCollectionsReport = () => {
                     <td className="px-4 py-2 whitespace-nowrap font-mono">{item.loan_code || '-'}</td>
                     <td className="px-4 py-2 whitespace-nowrap">{item.loan_number || '-'}</td>
                     <td className="px-4 py-2 whitespace-nowrap">{item.emi_number || '-'}</td>
-                    <td className="px-4 py-2 whitespace-nowrap font-bold text-green-700">₹{Number(item.amount).toLocaleString()}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {item.status === 'bounced' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Bounced</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
+                      )}
+                    </td>
+                    <td className={`px-4 py-2 whitespace-nowrap font-bold ${item.status === 'bounced' ? 'text-red-700' : 'text-green-700'}`}>₹{Number(item.amount).toLocaleString()}</td>
                   </tr>
                 ))
               )}
