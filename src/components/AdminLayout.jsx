@@ -46,6 +46,7 @@ const AdminSidebarLayout = () => {
     { to: 'loans/agent-collections', icon: FiCreditCard, label: 'Agent Collections' },
     // App Updates - only for super admin
     ...(isSuperAdmin ? [{ to: 'app-updates', icon: FiDownload, label: 'App Updates' }] : []),
+    ...(isSuperAdmin ? [{ to: 'audit-logs', icon: FiFileText, label: 'Audit Logs' }] : []),
   ];
 
   useEffect(() => {

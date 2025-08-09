@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminDashboard from './pages/AdminDashboard';
+import AuditLogsPage from './pages/AuditLogsPage.jsx';
 import AgentDashboard from './pages/AgentDashboard';
 import AdminLayout from './components/AdminLayout';
 import AgentLayout from './components/AgentLayout';
@@ -142,6 +143,11 @@ const App = () => {
           <Route path="app-updates" element={
             <ProtectedRoute requiredRoles={['superadmin']}>
               <AppUpdatePage />
+            </ProtectedRoute>
+          } />
+          <Route path="audit-logs" element={
+            <ProtectedRoute requiredRoles={['superadmin']}>
+              <AuditLogsPage />
             </ProtectedRoute>
           } />
         </Route>
