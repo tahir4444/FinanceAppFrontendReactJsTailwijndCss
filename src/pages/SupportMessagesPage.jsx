@@ -137,7 +137,8 @@ const SupportMessagesPage = () => {
     }));
   };
 
-  if (!user || !['admin', 'superadmin'].includes(user.role)) {
+  const userRole = user?.role || user?.Role?.name;
+  if (!user || !['admin', 'superadmin'].includes(userRole)) {
     return (
       <div className="container mt-5">
         <div className="alert alert-danger">
