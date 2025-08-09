@@ -348,6 +348,7 @@ const AgentCollectionsReport = () => {
                 >Apply</button>
               </div>
             )}
+            <span className="ml-3 text-sm text-gray-600 hidden md:inline">Showing {from}-{to} of {total} records</span>
           </div>
           <div className="flex items-center gap-2 w-full md:w-auto justify-end">
             <button
