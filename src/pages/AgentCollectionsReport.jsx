@@ -331,13 +331,17 @@ const AgentCollectionsReport = () => {
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={page <= 1}
-                  className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-md text-sm font-medium border transition-colors
+                             bg-blue-600 text-white border-blue-600 hover:bg-blue-700
+                             disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-300"
                 >Prev</button>
-                <span className="mx-1 text-sm font-semibold">Page {page} of {totalPages}</span>
+                <span className="mx-1 text-sm font-semibold text-gray-700">Page {page} of {totalPages}</span>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={page >= totalPages}
-                  className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-md text-sm font-medium border transition-colors
+                             bg-blue-600 text-white border-blue-600 hover:bg-blue-700
+                             disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-300"
                 >Next</button>
               </div>
 
@@ -477,23 +481,32 @@ const AgentCollectionsReport = () => {
             </tbody>
           </table>
         </div>
-        {/* Pagination - below table, responsive */}
-        <div className="flex flex-col md:flex-row justify-between items-center mt-8 gap-4">
-          <div className="text-sm text-gray-600 w-full md:w-auto text-left">
-            Showing {from}-{to} of {total} records
-          </div>
-          <div className="space-x-2 w-full md:w-auto flex justify-end items-center">
-            <button
-              onClick={() => handlePageChange(page - 1)}
-              disabled={page <= 1}
-              className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
-            >Prev</button>
-            <span className="mx-2 font-semibold">Page {page} of {totalPages}</span>
-            <button
-              onClick={() => handlePageChange(page + 1)}
-              disabled={page >= totalPages}
-              className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
-            >Next</button>
+        {/* Pagination - below table, same visual style as top */}
+        <div className="mt-8">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="text-sm text-gray-600 order-2 md:order-1 text-center md:text-left">
+                Showing {from}-{to} of {total} records
+              </div>
+              <div className="order-1 md:order-2 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium border transition-colors
+                             bg-blue-600 text-white border-blue-600 hover:bg-blue-700
+                             disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-300"
+                >Prev</button>
+                <span className="mx-1 text-sm font-semibold text-gray-700">Page {page} of {totalPages}</span>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium border transition-colors
+                             bg-blue-600 text-white border-blue-600 hover:bg-blue-700
+                             disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-300"
+                >Next</button>
+              </div>
+              <div className="order-3" />
+            </div>
           </div>
         </div>
       </div>
