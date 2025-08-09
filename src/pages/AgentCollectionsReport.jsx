@@ -319,6 +319,7 @@ const AgentCollectionsReport = () => {
         {error && <div className="text-red-600 mb-4">{error}</div>}
         {/* Top Pagination & Page Size Controls */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+        <span className="ml-3 text-sm text-gray-600 hidden md:inline">Showing {from}-{to} of {total} records</span>
           <div className="flex items-center gap-2 w-full md:w-auto">
             <span className="text-sm text-gray-600">Rows per page:</span>
             <select
@@ -348,7 +349,7 @@ const AgentCollectionsReport = () => {
                 >Apply</button>
               </div>
             )}
-            <span className="ml-3 text-sm text-gray-600 hidden md:inline">Showing {from}-{to} of {total} records</span>
+            
           </div>
           <div className="flex items-center gap-2 w-full md:w-auto justify-end">
             <button
