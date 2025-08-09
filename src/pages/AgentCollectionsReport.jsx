@@ -208,7 +208,7 @@ const AgentCollectionsReport = () => {
               onChange={opt => setSelectedAgent(opt.value)}
               isSearchable
               classNamePrefix="react-select"
-              className="w-80"
+              className="w-full md:w-80"
               placeholder="Select agent or admin..."
               menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
               styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
@@ -363,17 +363,71 @@ const AgentCollectionsReport = () => {
             >Next</button>
           </div>
         </div>
-        {/* Export Button - top right */}
+        {/* Export Button - top right (full width on mobile) */}
         <div className="flex justify-end mb-4">
           <button
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold shadow"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold shadow"
             onClick={() => exportToCSV(collections, 'agent_collections.csv')}
             disabled={!collections || !collections.length}
           >
             <FiDownload /> Export to CSV
           </button>
         </div>
-        <div className="overflow-x-auto">
+        {/* Mobile card list (md:hidden) */}
+        <div className="md:hidden space-y-3">
+          {loading ? (
+            <div className="text-center py-6">Loading...</div>
+          ) : collections.length === 0 ? (
+            <div className="text-center py-6">No collections found.</div>
+          ) : (
+            collections.map((item, idx) => (
+              <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-500">Date</span>
+                  <span className="text-sm font-mono text-gray-800">
+                    {item.status === 'bounced'
+                      ? (item.bounced_at ? dayjs(item.bounced_at).format('DD-MM-YY') : '-')
+                      : (item.paid_at ? dayjs(item.paid_at).format('DD-MM-YY') : '-')}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-xs text-gray-500">Agent</div>
+                    <div className="font-semibold text-blue-700">{item.collector?.name || '-'}</div>
+                    <div className="text-xs text-gray-500">{item.collector?.mobile}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">Amount</div>
+                    <div className="font-bold text-green-700">₹{Number(item.amount).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-600">
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-400">Loan Code</div>
+                    <div className="font-mono">{item.loan_code || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-400">Loan #</div>
+                    <div>{item.loan_number || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-400">EMI #</div>
+                    <div>{item.emi_number || '-'}</div>
+                  </div>
+                </div>
+                {item.customer && (
+                  <div className="mt-3">
+                    <div className="text-[10px] uppercase text-gray-400">Customer</div>
+                    <div className="text-sm font-semibold text-purple-700">{item.customer.name}</div>
+                    <div className="text-xs text-gray-500">{item.customer.mobile}</div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        {/* Desktop table (hidden on mobile) */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
@@ -411,7 +465,7 @@ const AgentCollectionsReport = () => {
             </tbody>
           </table>
         </div>
-        {/* Pagination - below table, left/right split */}
+        {/* Pagination - below table, responsive */}
         <div className="flex flex-col md:flex-row justify-between items-center mt-8 gap-4">
           <div className="text-sm text-gray-600 w-full md:w-auto text-left">
             Showing {from}-{to} of {total} records
