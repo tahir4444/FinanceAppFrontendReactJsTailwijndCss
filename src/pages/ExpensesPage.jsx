@@ -183,7 +183,13 @@ const ExpensesPage = () => {
   const fetchUsers = async () => {
     try {
       const res = await getUsersForDropdown();
-      setUsers(res.data);
+      const list = Array.isArray(res.data) ? res.data : res;
+      // Exclude superadmin users from dropdown
+      const filtered = list.filter((u) => {
+        const role = (u.Role?.name || u.role || '').toString().toLowerCase();
+        return role !== 'superadmin';
+      });
+      setUsers(filtered);
     } catch (err) {
       toast.error('Failed to fetch users');
     }
