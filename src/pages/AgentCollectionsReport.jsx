@@ -99,12 +99,12 @@ const AgentCollectionsReport = () => {
     })),
   ];
 
-  // Summary stats
-  const totalAmount = collections.reduce((sum, c) => sum + Number(c.amount), 0);
+  // Summary stats (paid only)
+  const totalPaidAmount = collections.reduce((sum, c) => c.status === 'bounced' ? sum : sum + Number(c.amount), 0);
   const uniqueAgents = new Set(collections.map(c => c.collector?.id)).size;
   const uniqueCustomers = new Set(collections.map(c => c.customer?.id)).size;
 
-  // Group collections by agent and date
+  // Group collections by agent and date (track paid vs bounced separately)
   const grouped = {};
   collections.forEach((item) => {
     if (!item.collector) return;
@@ -114,9 +114,14 @@ const AgentCollectionsReport = () => {
       ? (item.bounced_at ? dayjs(item.bounced_at).format('YYYY-MM-DD') : '-')
       : (item.paid_at ? dayjs(item.paid_at).format('YYYY-MM-DD') : '-');
     if (!grouped[agentKey]) grouped[agentKey] = {};
-    if (!grouped[agentKey][dateKey]) grouped[agentKey][dateKey] = { total: 0, count: 0, agent: item.collector, date: dateKey };
-    grouped[agentKey][dateKey].total += Number(item.amount);
-    grouped[agentKey][dateKey].count += 1;
+    if (!grouped[agentKey][dateKey]) grouped[agentKey][dateKey] = { paidTotal: 0, paidCount: 0, bouncedTotal: 0, bouncedCount: 0, agent: item.collector, date: dateKey };
+    if (item.status === 'bounced') {
+      grouped[agentKey][dateKey].bouncedTotal += Number(item.amount);
+      grouped[agentKey][dateKey].bouncedCount += 1;
+    } else {
+      grouped[agentKey][dateKey].paidTotal += Number(item.amount);
+      grouped[agentKey][dateKey].paidCount += 1;
+    }
   });
   const summaryRows = [];
   Object.values(grouped).forEach(agentDates => {
@@ -283,20 +288,24 @@ const AgentCollectionsReport = () => {
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Agent</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Mobile</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Total Collected (₹)</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Total Bounced (₹)</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">EMIs Collected</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">EMIs Bounced</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {summaryRows.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8">No collections found.</td></tr>
+                <tr><td colSpan={7} className="text-center py-8">No collections found.</td></tr>
               ) : (
                 summaryRows.map((row, idx) => (
                   <tr key={idx} className="hover:bg-green-50 transition-colors duration-150">
                     <td className="px-4 py-2 whitespace-nowrap font-mono text-gray-700">{row.date !== '-' ? dayjs(row.date).format('DD-MM-YY') : '-'}</td>
                     <td className="px-4 py-2 whitespace-nowrap font-semibold text-blue-700">{row.agent.name}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{row.agent.mobile}</td>
-                    <td className="px-4 py-2 whitespace-nowrap font-bold text-green-700">₹{row.total.toLocaleString()}</td>
-                    <td className="px-4 py-2 whitespace-nowrap font-semibold text-gray-900">{row.count}</td>
+                    <td className="px-4 py-2 whitespace-nowrap font-bold text-green-700">₹{row.paidTotal.toLocaleString()}</td>
+                    <td className="px-4 py-2 whitespace-nowrap font-bold text-red-700">₹{row.bouncedTotal.toLocaleString()}</td>
+                    <td className="px-4 py-2 whitespace-nowrap font-semibold text-gray-900">{row.paidCount}</td>
+                    <td className="px-4 py-2 whitespace-nowrap font-semibold text-gray-900">{row.bouncedCount}</td>
                   </tr>
                 ))
               )}
@@ -309,7 +318,7 @@ const AgentCollectionsReport = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard icon={FiUsers} label="Unique Agents" value={uniqueAgents} color="border-blue-500" />
         <StatCard icon={FiUsers} label="Unique Customers" value={uniqueCustomers} color="border-purple-500" />
-        <StatCard icon={FiTrendingUp} label="Total Collected (₹)" value={`₹${totalAmount.toLocaleString()}`} color="border-green-500" />
+        <StatCard icon={FiTrendingUp} label="Total Collected (₹)" value={`₹${totalPaidAmount.toLocaleString()}`} color="border-green-500" />
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl p-6">
