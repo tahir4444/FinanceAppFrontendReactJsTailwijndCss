@@ -10,36 +10,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    
-    // === BUILD OPTIMIZATIONS FOR DEPLOYMENT ===
-    build: {
-      // Faster minification
-      minify: 'esbuild',
-      
-      // Modern target for better performance
-      target: 'esnext',
-      
-      // Skip compressed size reporting for faster builds
-      reportCompressedSize: false,
-      
-      // Optimize chunk splitting for better caching
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            // Separate vendor chunks for better browser caching
-            vendor: ['react', 'react-dom'],
-            router: ['react-router-dom'],
-            utils: ['axios'],
-            // Add more chunks based on your dependencies
-          },
-        },
-      },
-      
-      // Increase chunk size warning limit
-      chunkSizeWarningLimit: 1000,
-    },
-
-    // === DEVELOPMENT SERVER CONFIG ===
     server: {
       port: 5173,
       host: true, // This enables listening on all local IPs
@@ -78,36 +48,13 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-
-    // === DEPENDENCY OPTIMIZATION ===
     optimizeDeps: {
       include: ['react', 'react-dom', 'react-router-dom', 'axios'],
-      // Force re-optimization on lockfile update
-      force: false,
     },
-
-    // === ENVIRONMENT VARIABLES ===
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
       'import.meta.env.VITE_BACKEND_BASE_URL': JSON.stringify(backendBaseUrl),
     },
-
-    // === ADDITIONAL OPTIMIZATIONS ===
-    esbuild: {
-      // Drop console and debugger in production
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
-    },
-
-    // === CSS OPTIMIZATION ===
-    css: {
-      // Optimize CSS for production
-      devSourcemap: mode === 'development',
-    },
   };
 });
-
-// This Vite configuration file sets up a React application with:
-// - Optimized build settings for faster deployment
-// - Better chunk splitting for browser caching
-// - Development server with proxy configuration
-// - Environment variable handling for multiple deployment targets
+// This Vite configuration file sets up a React application with a development server

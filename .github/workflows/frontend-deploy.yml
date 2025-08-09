@@ -9,12 +9,27 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      htaccess-changed: ${{ steps.check-htaccess.outputs.changed }}
     
     steps:
       - name: 🧾 Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Fetch last 2 commits to compare
+
+      - name: 🔍 Check if .htaccess Changed
+        id: check-htaccess
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q "^\.htaccess$"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "📝 .htaccess file has changed - will deploy it"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "✅ .htaccess unchanged - skipping htaccess deployment"
+          fi
 
       - name: 🛠 Setup Node.js
         uses: actions/setup-node@v4
@@ -25,85 +40,130 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
-      # === Build and Deploy for Server 1 ===
-      - name: ✍️ Write .env file for Server 1
+      # === Build for Server 1 ===
+      - name: ✍️ Build for Server 1
         run: |
           echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
           echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
           echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
+          npm run build
+          mkdir -p builds/server1
+          cp -r dist/* builds/server1/
 
-      - name: 🔨 Build React App (Vite) for Server 1
-        run: npm run build
-
-      - name: 🧪 Debug List Build Output (Server 1)
+      # === Build for Server 2 ===
+      - name: ✍️ Build for Server 2
         run: |
-          echo "📁 Contents of dist/ (Server 1)"
-          ls -la dist/
-          echo "📁 Contents of root/"
-          ls -la .
-
-      - name: 🚀 Deploy Build Contents via SCP (Server 1)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: 'dist/*'
-          target: ${{ secrets.APP_PATH }}
-          strip_components: 1
-          rm: true
-
-      - name: 🚀 Deploy .htaccess via SCP (Server 1)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: '.htaccess'
-          target: ${{ secrets.APP_PATH }}
-          strip_components: 0
-
-      - name: 🔁 Reload Apache (Server 1)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            sudo systemctl reload apache2
-
-      # === Clean and Rebuild for Server 2 ===
-      - name: 🧹 Clean Previous Build
-        run: rm -rf dist/
-
-      - name: ✍️ Write .env file for Server 2
-        run: |
+          rm -rf dist/
           echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
           echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
           echo "FRONTEND_URL=${{ secrets.FRONTEND_URL_2 }}" >> .env
+          npm run build
+          mkdir -p builds/server2
+          cp -r dist/* builds/server2/
 
-      - name: 🔨 Build React App (Vite) for Server 2
-        run: npm run build
+      # === Upload Build Artifacts ===
+      - name: 📤 Upload Server 1 Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-server1
+          path: builds/server1/
+          retention-days: 1
 
-      - name: 🧪 Debug List Build Output (Server 2)
-        run: |
-          echo "📁 Contents of dist/ (Server 2)"
-          ls -la dist/
-          echo "📁 Contents of root/"
-          ls -la .
+      - name: 📤 Upload Server 2 Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-server2
+          path: builds/server2/
+          retention-days: 1
 
-      - name: 🚀 Deploy Build Contents via SCP (Server 2)
+      - name: 📤 Upload .htaccess (if changed)
+        if: steps.check-htaccess.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: htaccess-file
+          path: .htaccess
+          retention-days: 1
+
+  # === Parallel Deployment Jobs ===
+  deploy-server1:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Download Server 1 Build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-server1
+          path: ./build
+
+      - name: 📥 Download .htaccess (if changed)
+        if: needs.build.outputs.htaccess-changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: htaccess-file
+          path: ./
+
+      - name: 🚀 Deploy Build Files to Server 1
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: 'build/*'
+          target: ${{ secrets.APP_PATH }}
+          strip_components: 1
+          rm: true
+
+      - name: 🚀 Deploy .htaccess to Server 1 (if changed)
+        if: needs.build.outputs.htaccess-changed == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: '.htaccess'
+          target: ${{ secrets.APP_PATH }}
+          strip_components: 0
+
+      - name: 🔁 Reload Apache Server 1
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: sudo systemctl reload apache2
+
+  deploy-server2:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Download Server 2 Build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-server2
+          path: ./build
+
+      - name: 📥 Download .htaccess (if changed)
+        if: needs.build.outputs.htaccess-changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: htaccess-file
+          path: ./
+
+      - name: 🚀 Deploy Build Files to Server 2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: 'dist/*'
+          source: 'build/*'
           target: ${{ secrets.SERVER2_APP_PATH }}
           strip_components: 1
           rm: true
 
-      - name: 🚀 Deploy .htaccess via SCP (Server 2)
+      - name: 🚀 Deploy .htaccess to Server 2 (if changed)
+        if: needs.build.outputs.htaccess-changed == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER2_IP }}
@@ -113,11 +173,29 @@ jobs:
           target: ${{ secrets.SERVER2_APP_PATH }}
           strip_components: 0
 
-      - name: 🔁 Reload Apache (Server 2)
+      - name: 🔁 Reload Apache Server 2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            sudo systemctl reload apache2
+          script: sudo systemctl reload apache2
+
+  # === Deployment Summary ===
+  deployment-summary:
+    needs: [build, deploy-server1, deploy-server2]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 📊 Deployment Summary
+        run: |
+          echo "🚀 Deployment completed!"
+          echo "📦 Build artifacts created for both servers"
+          echo "🔄 Deployed to both servers in parallel"
+          if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
+            echo "📝 .htaccess was updated on both servers"
+          else
+            echo "✅ .htaccess was unchanged - skipped deployment"
+          fi
+          echo "⏱️ Total deployment time optimized!"

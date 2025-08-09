@@ -1,0 +1,123 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🧾 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🛠 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      # === Build and Deploy for Server 1 ===
+      - name: ✍️ Write .env file for Server 1
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+          echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
+
+      - name: 🔨 Build React App (Vite) for Server 1
+        run: npm run build
+
+      - name: 🧪 Debug List Build Output (Server 1)
+        run: |
+          echo "📁 Contents of dist/ (Server 1)"
+          ls -la dist/
+          echo "📁 Contents of root/"
+          ls -la .
+
+      - name: 🚀 Deploy Build Contents via SCP (Server 1)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: 'dist/*'
+          target: ${{ secrets.APP_PATH }}
+          strip_components: 1
+          rm: true
+
+      - name: 🚀 Deploy .htaccess via SCP (Server 1)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: '.htaccess'
+          target: ${{ secrets.APP_PATH }}
+          strip_components: 0
+
+      - name: 🔁 Reload Apache (Server 1)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo systemctl reload apache2
+
+      # === Clean and Rebuild for Server 2 ===
+      - name: 🧹 Clean Previous Build
+        run: rm -rf dist/
+
+      - name: ✍️ Write .env file for Server 2
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+          echo "FRONTEND_URL=${{ secrets.FRONTEND_URL_2 }}" >> .env
+
+      - name: 🔨 Build React App (Vite) for Server 2
+        run: npm run build
+
+      - name: 🧪 Debug List Build Output (Server 2)
+        run: |
+          echo "📁 Contents of dist/ (Server 2)"
+          ls -la dist/
+          echo "📁 Contents of root/"
+          ls -la .
+
+      - name: 🚀 Deploy Build Contents via SCP (Server 2)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER2_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: 'dist/*'
+          target: ${{ secrets.SERVER2_APP_PATH }}
+          strip_components: 1
+          rm: true
+
+      - name: 🚀 Deploy .htaccess via SCP (Server 2)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER2_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: '.htaccess'
+          target: ${{ secrets.SERVER2_APP_PATH }}
+          strip_components: 0
+
+      - name: 🔁 Reload Apache (Server 2)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER2_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo systemctl reload apache2

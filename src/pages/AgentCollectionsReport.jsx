@@ -60,6 +60,9 @@ const AgentCollectionsReport = () => {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [from, setFrom] = useState(0);
+  const [to, setTo] = useState(0);
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -133,7 +136,10 @@ const AgentCollectionsReport = () => {
       const res = await axiosInstance.get('/loans/agent/collection-report', { params });
       setCollections(res.data.results || []);
       setTotal(res.data.count || 0);
-      setPage(res.data.page || 1);
+      setTotalPages(res.data.totalPages || Math.max(1, Math.ceil((res.data.count || 0) / PAGE_SIZE)));
+      setFrom(res.data.from ?? ((res.data.count || 0) === 0 ? 0 : ((pageNum - 1) * PAGE_SIZE + 1)));
+      setTo(res.data.to ?? Math.min(pageNum * PAGE_SIZE, res.data.count || 0));
+      setPage(res.data.page || pageNum);
       
       // Debug logging
       console.log('🔍 [Frontend AgentCollections] Response:', {
@@ -338,7 +344,7 @@ const AgentCollectionsReport = () => {
         {/* Pagination - below table, left/right split */}
         <div className="flex flex-col md:flex-row justify-between items-center mt-8 gap-4">
           <div className="text-sm text-gray-600 w-full md:w-auto text-left">
-            Showing {collections.length} of {total} records
+            Showing {from}-{to} of {total} records
           </div>
           <div className="space-x-2 w-full md:w-auto flex justify-end items-center">
             <button
@@ -346,10 +352,10 @@ const AgentCollectionsReport = () => {
               disabled={page <= 1}
               className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
             >Prev</button>
-            <span className="mx-2 font-semibold">Page {page}</span>
+            <span className="mx-2 font-semibold">Page {page} of {totalPages}</span>
             <button
               onClick={() => handlePageChange(page + 1)}
-              disabled={(page * PAGE_SIZE) >= total || collections.length === 0}
+              disabled={page >= totalPages}
               className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
             >Next</button>
           </div>
