@@ -256,7 +256,7 @@ const AuditLogsPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className={`${density==='compact'?'px-3 py-2':'px-4 py-3'} text-left text-gray-600 font-semibold`}>Time (IST)</th>
-                  <th className={`${density==='compact'?'px-3 py-2':'px-4 py-3'} text-left text-gray-600 font-semibold`}>User</th>
+                   <th className={`${density==='compact'?'px-3 py-2':'px-4 py-3'} text-left text-gray-600 font-semibold`}>User</th>
                   <th className={`${density==='compact'?'px-3 py-2':'px-4 py-3'} text-left text-gray-600 font-semibold`}>Action</th>
                   <th className={`${density==='compact'?'px-3 py-2':'px-4 py-3'} text-left text-gray-600 font-semibold`}>Resource</th>
                   <th className={`${density==='compact'?'px-3 py-2':'px-4 py-3'} text-left text-gray-600 font-semibold hidden md:table-cell`}>IP</th>
@@ -274,7 +274,7 @@ const AuditLogsPage = () => {
                   return (
                     <tr key={log.id} className="border-t hover:bg-gray-50">
                       <td className={`${density==='compact'?'px-3 py-1.5':'px-4 py-2'} whitespace-nowrap`}>{formatTs(log.created_at || log.createdAt)}</td>
-                      <td className={`${density==='compact'?'px-3 py-1.5':'px-4 py-2'}`}>{log.user_id ?? '-'}</td>
+                      <td className={`${density==='compact'?'px-3 py-1.5':'px-4 py-2'}`}>{log.actor?.name || log.actor?.email || log.user_id || '-'}</td>
                       <td className={`${density==='compact'?'px-3 py-1.5':'px-4 py-2'}`}>
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full ${density==='compact'?'text-[10px]':'text-xs'} font-medium ${cat.color}`}>{cat.label}</span>
