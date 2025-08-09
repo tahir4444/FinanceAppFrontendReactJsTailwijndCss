@@ -673,10 +673,14 @@ const ExpensesPage = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {expense.created_at
-                        ? new Date(expense.created_at).toLocaleDateString()
-                        : '-'}
+                    <div className="text-sm text-gray-900 font-mono">
+                      {(() => {
+                        if (!expense.created_at) return '-';
+                        const ist = dayjs(expense.created_at).tz('Asia/Kolkata');
+                        const time = ist.format('hh:mm:ss A');
+                        const date = ist.format('DD-MMM-YYYY');
+                        return `${time}, ${date}`;
+                      })()}
                     </div>
                   </td>
                 </tr>
