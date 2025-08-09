@@ -459,7 +459,21 @@ const LoansPage = () => {
         customer_id: customerFilter || undefined,
         export_type: exportType,
       };
-      await exportLoans(params);
+      const response = await exportLoans(params);
+      const blob = new Blob([response.data], {
+        type: response.headers['content-type'] || 'text/csv',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filenameHeader = response.headers['content-disposition'] || '';
+      const match = filenameHeader.match(/filename="?([^";]+)"?/);
+      const filename = match ? match[1] : (exportType === 'pdf' ? 'loans_export.pdf' : 'loans_export.csv');
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
       toast.success('Loans exported successfully');
     } catch (error) {
       console.error('Error exporting loans:', error);

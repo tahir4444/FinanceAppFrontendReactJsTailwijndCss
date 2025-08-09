@@ -22,8 +22,15 @@ export const getLoanCustomers = () =>
 export const updateLoan = (loanId, data) => api.put(`/loans/${loanId}`, data);
 export const clearLateCharges = (loanId) =>
   api.post(`/loans/${loanId}/clear-charges`);
-export const exportLoans = (params = {}) =>
-  api.get('/loans/export', { params, responseType: 'blob' });
+export const exportLoans = (params = {}) => {
+  const normalized = { ...params };
+  // Normalize export type key to match backend expectation
+  if (normalized.export_type && !normalized.exportType) {
+    normalized.exportType = normalized.export_type;
+    delete normalized.export_type;
+  }
+  return api.get('/loans/export', { params: normalized, responseType: 'blob' });
+};
 export const getAdminDashboard = () => api.get('/loans/dashboard/admin');
 export const getTopCustomers = () => api.get('/loans/dashboard/admin/top-customers');
 export const getOverdueLoans = () => api.get('/loans/dashboard/admin/overdue-loans');
