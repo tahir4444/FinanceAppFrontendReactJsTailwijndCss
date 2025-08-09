@@ -9,7 +9,7 @@ import { registerLocale } from 'react-datepicker';
 import enGB from 'date-fns/locale/en-GB';
 registerLocale('en-GB', enGB);
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className={`flex items-center bg-white rounded-2xl shadow p-6 border-l-8 ${color} mb-4 md:mb-0 md:mr-6`}> 
@@ -63,6 +63,9 @@ const AgentCollectionsReport = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [from, setFrom] = useState(0);
   const [to, setTo] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [isCustomPageSize, setIsCustomPageSize] = useState(false);
+  const [customPageSize, setCustomPageSize] = useState('');
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -127,7 +130,7 @@ const AgentCollectionsReport = () => {
     try {
       const params = {
         page: pageNum,
-        limit: PAGE_SIZE,
+        limit: pageSize,
         search: search.trim(),
       };
       if (startDate) params.startDate = dayjs(startDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
@@ -136,9 +139,9 @@ const AgentCollectionsReport = () => {
       const res = await axiosInstance.get('/loans/agent/collection-report', { params });
       setCollections(res.data.results || []);
       setTotal(res.data.count || 0);
-      setTotalPages(res.data.totalPages || Math.max(1, Math.ceil((res.data.count || 0) / PAGE_SIZE)));
-      setFrom(res.data.from ?? ((res.data.count || 0) === 0 ? 0 : ((pageNum - 1) * PAGE_SIZE + 1)));
-      setTo(res.data.to ?? Math.min(pageNum * PAGE_SIZE, res.data.count || 0));
+      setTotalPages(res.data.totalPages || Math.max(1, Math.ceil((res.data.count || 0) / pageSize)));
+      setFrom(res.data.from ?? ((res.data.count || 0) === 0 ? 0 : ((pageNum - 1) * pageSize + 1)));
+      setTo(res.data.to ?? Math.min(pageNum * pageSize, res.data.count || 0));
       setPage(res.data.page || pageNum);
       
       // Debug logging
@@ -146,7 +149,7 @@ const AgentCollectionsReport = () => {
         resultsCount: res.data.results?.length || 0,
         totalCount: res.data.count || 0,
         page: res.data.page || 1,
-        limit: PAGE_SIZE
+        limit: pageSize
       });
     } catch (err) {
       setError('Failed to fetch agent collections');
@@ -159,10 +162,31 @@ const AgentCollectionsReport = () => {
   useEffect(() => {
     fetchCollections(1);
     // eslint-disable-next-line
-  }, [search, startDate, endDate, selectedAgent]);
+  }, [search, startDate, endDate, selectedAgent, pageSize]);
 
   const handlePageChange = (newPage) => {
     fetchCollections(newPage);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const value = e.target.value;
+    if (value === 'custom') {
+      setIsCustomPageSize(true);
+      return;
+    }
+    const size = parseInt(value, 10);
+    if (!Number.isNaN(size) && size > 0) {
+      setIsCustomPageSize(false);
+      setCustomPageSize('');
+      setPageSize(size);
+    }
+  };
+
+  const applyCustomPageSize = () => {
+    const size = parseInt(customPageSize, 10);
+    if (!Number.isNaN(size) && size > 0) {
+      setPageSize(size);
+    }
   };
 
   return (
@@ -293,6 +317,52 @@ const AgentCollectionsReport = () => {
           <FiCreditCard className="text-blue-600" /> Agent Collections Report
         </h2>
         {error && <div className="text-red-600 mb-4">{error}</div>}
+        {/* Top Pagination & Page Size Controls */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <span className="text-sm text-gray-600">Rows per page:</span>
+            <select
+              className="border border-gray-300 rounded-lg px-2 py-1"
+              value={isCustomPageSize ? 'custom' : String(pageSize)}
+              onChange={handlePageSizeChange}
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="custom">Custom…</option>
+            </select>
+            {isCustomPageSize && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  className="w-24 border border-gray-300 rounded-lg px-2 py-1"
+                  value={customPageSize}
+                  onChange={(e) => setCustomPageSize(e.target.value)}
+                  placeholder="e.g. 75"
+                />
+                <button
+                  onClick={applyCustomPageSize}
+                  className="px-3 py-1 bg-blue-600 text-white rounded-lg"
+                >Apply</button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1}
+              className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
+            >Prev</button>
+            <span className="mx-2 font-semibold">Page {page} of {totalPages}</span>
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="px-4 py-2 bg-gray-200 rounded-lg font-semibold disabled:opacity-50"
+            >Next</button>
+          </div>
+        </div>
         {/* Export Button - top right */}
         <div className="flex justify-end mb-4">
           <button
