@@ -28,9 +28,10 @@ const AdminSidebarLayout = () => {
   const location = useLocation();
   const dropdownRef = useRef(null);
 
-  // Get user role
-  const role = user?.role || user?.Role?.name;
-  const isSuperAdmin = role === 'superadmin';
+  // Get user role (normalized)
+  const rawRole = user?.role || user?.Role?.name || '';
+  const normalizedRole = (rawRole || '').toString().trim().toLowerCase().replace(/\s+/g, '');
+  const isSuperAdmin = normalizedRole === 'superadmin';
 
   // Define sidebar links with conditional rendering for super admin only
   const sidebarLinks = [
@@ -85,7 +86,7 @@ const AdminSidebarLayout = () => {
   
   if (
     isAuthenticated &&
-    !['admin', 'superadmin'].includes(role)
+    !['admin', 'superadmin'].includes(normalizedRole)
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
