@@ -83,6 +83,38 @@ jobs:
           name: htaccess-file
           path: ./
 
+      - name: 🧹 Clean Target Directory on Server 2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER2_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
+            
+            echo "🧹 Cleaning target directory: $TARGET_DIR"
+            
+            # Check if directory exists
+            if [ -d "$TARGET_DIR" ]; then
+              echo "📁 Target directory exists, cleaning contents..."
+              
+              # Remove contents but keep directory structure
+              sudo rm -rf "$TARGET_DIR"/* 2>/dev/null || echo "⚠️ Some files couldn't be removed"
+              sudo rm -rf "$TARGET_DIR"/.[^.]* 2>/dev/null || echo "⚠️ Some hidden files couldn't be removed"
+              
+              # Ensure proper permissions
+              sudo chown -R $USER:$USER "$TARGET_DIR" 2>/dev/null || echo "⚠️ Couldn't change ownership"
+              sudo chmod -R 755 "$TARGET_DIR" 2>/dev/null || echo "⚠️ Couldn't change permissions"
+            else
+              echo "📁 Target directory doesn't exist, creating it..."
+              sudo mkdir -p "$TARGET_DIR"
+              sudo chown -R $USER:$USER "$TARGET_DIR"
+              sudo chmod -R 755 "$TARGET_DIR"
+            fi
+            
+            echo "✅ Target directory prepared for deployment"
+
       - name: 🚀 Deploy Build Files to Server 2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -92,7 +124,9 @@ jobs:
           source: 'build/*'
           target: ${{ secrets.SERVER2_APP_PATH }}
           strip_components: 1
-          rm: true
+          rm: false
+          overwrite: true
+          timeout: 120s
 
       - name: 🚀 Deploy .htaccess to Server 2 (if changed)
         if: needs.build.outputs.htaccess-changed == 'true'
@@ -114,12 +148,51 @@ jobs:
           script: sudo systemctl reload apache2
 
       - name: 🌐 Verify Deployment
-        run: |
-          if curl -sSf ${{ secrets.FRONTEND_URL_2 }} >/dev/null; then
-            echo "✅ Frontend is live at ${{ secrets.FRONTEND_URL_2 }}"
-          else
-            echo "⚠ Frontend may not be accessible yet"
-          fi
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER2_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
+            
+            echo "🔍 Verifying deployment..."
+            
+            # Check if files were deployed
+            if [ -d "$TARGET_DIR" ] && [ "$(ls -A "$TARGET_DIR")" ]; then
+              echo "✅ Files deployed successfully"
+              echo "📁 Contents:"
+              ls -la "$TARGET_DIR"
+            else
+              echo "❌ Deployment verification failed - directory is empty or doesn't exist"
+              exit 1
+            fi
+            
+            # Check for key files
+            if [ -f "$TARGET_DIR/index.html" ]; then
+              echo "✅ index.html found"
+            else
+              echo "❌ index.html not found"
+              exit 1
+            fi
+            
+            if [ -d "$TARGET_DIR/assets" ]; then
+              echo "✅ assets directory found"
+            else
+              echo "❌ assets directory not found"
+              exit 1
+            fi
+            
+            echo "✅ Deployment verification completed successfully"
+            
+            # Final health check from server
+            echo "🏥 Performing final health check..."
+            if curl -sSf --connect-timeout 10 --max-time 30 "${{ secrets.FRONTEND_URL_2 }}" > /dev/null 2>&1; then
+              echo "✅ Frontend is accessible at ${{ secrets.FRONTEND_URL_2 }}"
+            else
+              echo "⚠️ Frontend may not be accessible yet (this is normal for new deployments)"
+            fi
 
   deployment-summary:
     needs: [build, deploy-server2]
