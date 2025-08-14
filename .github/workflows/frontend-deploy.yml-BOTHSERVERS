@@ -18,7 +18,7 @@ jobs:
       - name: 🧾 Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 2  # Fetch last 2 commits to compare
 
       - name: 🔍 Check if .htaccess Changed
         id: check-htaccess
@@ -38,9 +38,20 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install Dependencies
-        run: npm ci --production
+        run: npm ci
 
-      - name: ✍️ Build Frontend for Server 2
+      # === Build for Server 1 (COMMENTED OUT) ===
+      # - name: ✍️ Build for Server 1
+      #   run: |
+      #     echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
+      #     echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+      #     echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
+      #     npm run build
+      #     mkdir -p builds/server1
+      #     cp -r dist/* builds/server1/
+
+      # === Build for Server 2 ===
+      - name: ✍️ Build for Server 2
         run: |
           rm -rf dist/
           echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env
@@ -50,7 +61,15 @@ jobs:
           mkdir -p builds/server2
           cp -r dist/* builds/server2/
 
-      - name: 📤 Upload Build Artifact
+      # === Upload Build Artifacts ===
+      # - name: 📤 Upload Server 1 Build (COMMENTED OUT)
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: build-server1
+      #     path: builds/server1/
+      #     retention-days: 1
+
+      - name: 📤 Upload Server 2 Build
         uses: actions/upload-artifact@v4
         with:
           name: build-server2
@@ -64,6 +83,55 @@ jobs:
           name: htaccess-file
           path: .htaccess
           retention-days: 1
+
+  # === Parallel Deployment Jobs ===
+  # deploy-server1: (COMMENTED OUT)
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   
+  #   steps:
+  #     - name: 📥 Download Server 1 Build
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: build-server1
+  #         path: ./build
+  #
+  #     - name: 📥 Download .htaccess (if changed)
+  #       if: needs.build.outputs.htaccess-changed == 'true'
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: htaccess-file
+  #         path: ./
+  #
+  #     - name: 🚀 Deploy Build Files to Server 1
+  #       uses: appleboy/scp-action@v0.1.7
+  #       with:
+  #         host: ${{ secrets.SERVER_IP }}
+  #         username: ${{ secrets.SERVER_USER }}
+  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         source: 'build/*'
+  #         target: ${{ secrets.APP_PATH }}
+  #         strip_components: 1
+  #         rm: true
+  #
+  #     - name: 🚀 Deploy .htaccess to Server 1 (if changed)
+  #       if: needs.build.outputs.htaccess-changed == 'true'
+  #       uses: appleboy/scp-action@v0.1.7
+  #       with:
+  #         host: ${{ secrets.SERVER_IP }}
+  #         username: ${{ secrets.SERVER_USER }}
+  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         source: '.htaccess'
+  #         target: ${{ secrets.APP_PATH }}
+  #         strip_components: 0
+  #
+  #     - name: 🔁 Reload Apache Server 1
+  #       uses: appleboy/ssh-action@v1.0.3
+  #       with:
+  #         host: ${{ secrets.SERVER_IP }}
+  #         username: ${{ secrets.SERVER_USER }}
+  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         script: sudo systemctl reload apache2
 
   deploy-server2:
     needs: build
@@ -113,25 +181,21 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: sudo systemctl reload apache2
 
-      - name: 🌐 Verify Deployment
-        run: |
-          if curl -sSf ${{ secrets.FRONTEND_URL_2 }} >/dev/null; then
-            echo "✅ Frontend is live at ${{ secrets.FRONTEND_URL_2 }}"
-          else
-            echo "⚠ Frontend may not be accessible yet"
-          fi
-
+  # === Deployment Summary ===
   deployment-summary:
-    needs: [build, deploy-server2]
+    needs: [build, deploy-server2]  # Removed deploy-server1 dependency
     runs-on: ubuntu-latest
     if: always()
     
     steps:
       - name: 📊 Deployment Summary
         run: |
-          echo "🚀 Frontend Deployment completed!"
+          echo "🚀 Deployment completed!"
+          echo "📦 Build artifacts created for Server 2 only"
+          echo "🔄 Deployed to Server 2 only (Server 1 commented out)"
           if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
             echo "📝 .htaccess was updated on Server 2"
           else
             echo "✅ .htaccess was unchanged - skipped deployment"
           fi
+          echo "⏱️ Deployment time optimized - Server 1 skipped!"

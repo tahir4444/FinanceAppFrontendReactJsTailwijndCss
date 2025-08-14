@@ -80,7 +80,7 @@ const AdminSidebarLayout = () => {
 
   // Robust role check
   console.log('Current location:', location.pathname); // Debug log
-  console.log('User role:', role); // Debug log
+  console.log('User role:', rawRole); // Debug log
   console.log('Is super admin:', isSuperAdmin);
   console.log('Sidebar links:', sidebarLinks);
   
@@ -276,7 +276,7 @@ const AdminSidebarLayout = () => {
                   {/* Dropdown Menu Items */}
                   <div className="py-2">
                     {/* Only show for superadmin */}
-                    {role === 'superadmin' && (
+                    {rawRole === 'superadmin' && (
                       <button
                         className="flex items-center w-full px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 transition-colors"
                         onClick={handleUpgradeManagementClick}
