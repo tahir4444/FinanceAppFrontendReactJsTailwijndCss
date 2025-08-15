@@ -375,7 +375,7 @@ const LoansPage = () => {
       // Show appropriate success message
       let message = '';
       if (partialAmount && !isNaN(parseFloat(partialAmount))) {
-        const remainingBalance = parseFloat(response.data.emi.remaining_balance || 0);
+        const remainingBalance = parseFloat(response.data.receipt.remaining_balance || 0);
         message += `Partial EMI payment of ₹${partialAmount} received. Remaining balance: ₹${remainingBalance}. `;
       } else {
         message += `EMI ${emiNumber} marked as paid. `;
