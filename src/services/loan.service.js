@@ -9,8 +9,8 @@ export const getMyLoans = () => api.get('/loans/my');
 export const getLoanDetails = (loanId) => api.get(`/loans/${loanId}`);
 export const getTodaysDueEMIs = (date) =>
   api.get('/loans/emis/due', { params: { date } });
-export const markEmiPaid = (loanId, emiNumber, lateCharge) =>
-  api.post(`/loans/${loanId}/emis/${emiNumber}/pay`, lateCharge !== undefined ? { late_charge: lateCharge } : {});
+export const markEmiPaid = (loanId, emiNumber, requestBody = {}) =>
+  api.post(`/loans/${loanId}/emis/${emiNumber}/pay`, requestBody);
 export const markEmiBounced = (loanId, emiNumber, reason) =>
   api.post(`/loans/${loanId}/emis/${emiNumber}/bounce`, { reason });
 export const getCustomerLoanDashboard = () =>

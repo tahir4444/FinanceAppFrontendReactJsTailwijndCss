@@ -351,20 +351,30 @@ const LoansPage = () => {
     }
   };
 
-  const handleMarkPaid = async (loanId, emiNumber) => {
+  const handleMarkPaid = async (loanId, emiNumber, partialAmount) => {
     try {
-      console.log('Marking EMI as paid:', { loanId, emiNumber });
+      console.log('Marking EMI as paid:', { loanId, emiNumber, partialAmount });
       if (!loanId) {
         toast.error('Loan ID is missing');
         return;
       }
-      const response = await markEmiPaid(loanId, emiNumber);
-      toast.success(`EMI ${emiNumber} marked as paid`);
-      // Do NOT set receipt data or open receipt modal automatically
-      // setLastPaymentResponse(response);
-      // if (response && response.data && response.data.emi) {
-      //   ... (removed auto receipt modal logic)
-      // }
+      
+      // Prepare request body
+      const requestBody = {};
+      if (partialAmount && !isNaN(parseFloat(partialAmount))) {
+        requestBody.partial_amount = parseFloat(partialAmount);
+      }
+      
+      const response = await markEmiPaid(loanId, emiNumber, requestBody);
+      
+      // Show appropriate success message
+      if (partialAmount && !isNaN(parseFloat(partialAmount))) {
+        const remainingBalance = parseFloat(response.data.emi.remaining_balance || 0);
+        toast.success(`Partial payment of ₹${partialAmount} received for EMI ${emiNumber}. Remaining balance: ₹${remainingBalance}`);
+      } else {
+        toast.success(`EMI ${emiNumber} marked as paid`);
+      }
+      
       handleSelectLoan(loanId);
     } catch (error) {
       console.error('Error marking EMI as paid:', error);
@@ -1314,6 +1324,9 @@ const LoansPage = () => {
                         Amount
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment Details
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1348,6 +1361,30 @@ const LoansPage = () => {
                             {parseFloat(
                               emi.amount || selectedLoan.per_day_emi
                             ).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {emi.status === 'paid' ? (
+                              <div className="space-y-1">
+                                {emi.payment_type === 'partial' ? (
+                                  <>
+                                    <div className="text-green-600 font-medium">
+                                      Paid: ₹{parseFloat(emi.partial_payment_amount || emi.amount).toLocaleString()}
+                                    </div>
+                                    {emi.remaining_balance > 0 && (
+                                      <div className="text-orange-600 text-xs">
+                                        Remaining: ₹{parseFloat(emi.remaining_balance).toLocaleString()}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="text-green-600 font-medium">
+                                    Full Payment: ₹{parseFloat(emi.amount).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
@@ -1876,10 +1913,81 @@ const LoansPage = () => {
       {/* Mark Paid Modal */}
       {showMarkPaidModal && markPaidEmi && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 text-gray-900">
               Mark EMI as Paid
             </h2>
+            
+            {/* EMI Details */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-600">
+                <p><strong>EMI #{markPaidEmi.emi_number}</strong></p>
+                <p>Due Date: {new Date(markPaidEmi.emi_date).toLocaleDateString()}</p>
+                <p>Amount: ₹{parseFloat(markPaidEmi.amount).toLocaleString()}</p>
+                {markPaidEmi.late_charge > 0 && (
+                  <p>Late Charges: ₹{parseFloat(markPaidEmi.late_charge).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Payment Type Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Type
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="full"
+                    defaultChecked
+                    onChange={(e) => {
+                      if (e.target.value === 'full') {
+                        setMarkPaidCharges('');
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  Full Payment
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="partial"
+                    onChange={(e) => {
+                      if (e.target.value === 'partial') {
+                        setMarkPaidCharges('');
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  Partial Payment
+                </label>
+              </div>
+            </div>
+
+            {/* Partial Payment Amount Input */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Amount
+              </label>
+              <input
+                type="number"
+                min="0"
+                max={parseFloat(markPaidEmi.amount)}
+                step="0.01"
+                value={markPaidCharges}
+                onChange={(e) => setMarkPaidCharges(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={`Enter amount (max: ₹${parseFloat(markPaidEmi.amount).toLocaleString()})`}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty for full payment, or enter partial amount
+              </p>
+            </div>
+
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowMarkPaidModal(false)}
@@ -1890,10 +1998,21 @@ const LoansPage = () => {
               <button
                 onClick={async () => {
                   const loanId = selectedLoan?.id || selectedLoanId;
-                  await handleMarkPaid(loanId, markPaidEmi.emi_number);
+                  const partialAmount = markPaidCharges && !isNaN(parseFloat(markPaidCharges)) 
+                    ? parseFloat(markPaidCharges) 
+                    : undefined;
+                  
+                  await handleMarkPaid(loanId, markPaidEmi.emi_number, partialAmount);
                   setShowMarkPaidModal(false);
+                  setMarkPaidCharges('');
                 }}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                disabled={
+                  markPaidCharges && 
+                  (isNaN(parseFloat(markPaidCharges)) || 
+                   parseFloat(markPaidCharges) <= 0 || 
+                   parseFloat(markPaidCharges) > parseFloat(markPaidEmi.amount))
+                }
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
               >
                 Mark EMI Paid
               </button>
