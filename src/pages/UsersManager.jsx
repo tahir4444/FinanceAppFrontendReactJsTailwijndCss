@@ -166,7 +166,7 @@ const UsersManager = () => {
   const fetchUsers = async (
     pageNum = 1,
     searchTerm = '',
-    role = '',
+    roleFilterParam = '',
     append = false
   ) => {
     setLoading(true);
@@ -190,7 +190,7 @@ const UsersManager = () => {
           limit,
         });
         if (searchTerm) params.append('search', searchTerm);
-        if (role) params.append('role', role);
+        if (roleFilterParam) params.append('role', roleFilterParam);
         const response = await axiosInstance.get(`/users?${params.toString()}`);
         if (append) {
           setUsers((prev) => [...prev, ...response.data.users]);
