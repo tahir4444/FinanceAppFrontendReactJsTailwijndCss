@@ -23,7 +23,11 @@ jobs:
       - name: 🔍 Check if .htaccess Changed
         id: check-htaccess
         run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q "^\.htaccess$"; then
+          # Handle case where there's no previous commit (first push)
+          if [ $(git rev-list --count HEAD) -eq 1 ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "📝 First commit detected - will deploy .htaccess"
+          elif git diff --name-only HEAD~1 HEAD | grep -q "^\.htaccess$"; then
             echo "changed=true" >> $GITHUB_OUTPUT
             echo "📝 .htaccess file has changed - will deploy it"
           else
@@ -49,20 +53,25 @@ jobs:
           npm run build
           mkdir -p builds/server2
           cp -r dist/* builds/server2/
+          
+          # Only copy .htaccess if it has changed
+          if [ "${{ steps.check-htaccess.outputs.changed }}" == "true" ]; then
+            if [ -f ".htaccess" ]; then
+              echo "📝 .htaccess changed - copying new version to build directory"
+              cp .htaccess builds/server2/
+            else
+              echo "❌ .htaccess marked as changed but file not found in repository root"
+              exit 1
+            fi
+          else
+            echo "✅ .htaccess unchanged - will preserve existing file on server"
+          fi
 
       - name: 📤 Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-server2
           path: builds/server2/
-          retention-days: 1
-
-      - name: 📤 Upload .htaccess (if changed)
-        if: steps.check-htaccess.outputs.changed == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: htaccess-file
-          path: .htaccess
           retention-days: 1
 
   deploy-server2:
@@ -76,13 +85,6 @@ jobs:
           name: build-server2
           path: ./build
 
-      - name: 📥 Download .htaccess (if changed)
-        if: needs.build.outputs.htaccess-changed == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: htaccess-file
-          path: ./
-
       - name: 🧹 Clean Target Directory on Server 2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -94,6 +96,15 @@ jobs:
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
             
             echo "🧹 Cleaning target directory: $TARGET_DIR"
+            
+            # Backup .htaccess if it exists and hasn't changed
+            HTACCESS_BACKUP=""
+            if [ "${{ needs.build.outputs.htaccess-changed }}" != "true" ] && [ -f "$TARGET_DIR/.htaccess" ]; then
+              echo "💾 Backing up existing .htaccess (unchanged)"
+              HTACCESS_BACKUP="/tmp/.htaccess.backup.$"
+              cp "$TARGET_DIR/.htaccess" "$HTACCESS_BACKUP"
+              echo "✅ .htaccess backed up to $HTACCESS_BACKUP"
+            fi
             
             # Check if directory exists
             if [ -d "$TARGET_DIR" ]; then
@@ -113,9 +124,12 @@ jobs:
               sudo chmod -R 755 "$TARGET_DIR"
             fi
             
+            # Store backup path for next step
+            echo "HTACCESS_BACKUP=$HTACCESS_BACKUP" >> $GITHUB_ENV
+            
             echo "✅ Target directory prepared for deployment"
 
-      - name: 🚀 Deploy Build Files to Server 2
+      - name: 🚀 Deploy All Files to Server 2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER2_IP }}
@@ -128,16 +142,52 @@ jobs:
           overwrite: true
           timeout: 120s
 
-      - name: 🚀 Deploy .htaccess to Server 2 (if changed)
-        if: needs.build.outputs.htaccess-changed == 'true'
-        uses: appleboy/scp-action@v0.1.7
+      - name: 🔧 Handle .htaccess File
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: '.htaccess'
-          target: ${{ secrets.SERVER2_APP_PATH }}
-          strip_components: 0
+          script: |
+            set -e
+            TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
+            
+            if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
+              # .htaccess changed - it should already be deployed with build files
+              if [ -f "$TARGET_DIR/.htaccess" ]; then
+                echo "✅ New .htaccess deployed successfully"
+                sudo chmod 644 "$TARGET_DIR/.htaccess"
+                sudo chown $USER:$USER "$TARGET_DIR/.htaccess"
+                echo "📝 New .htaccess permissions set to 644"
+                echo "📄 New .htaccess content:"
+                cat "$TARGET_DIR/.htaccess"
+              else
+                echo "❌ .htaccess was supposed to be deployed but not found"
+                exit 1
+              fi
+            else
+              # .htaccess unchanged - restore from backup if it exists
+              HTACCESS_BACKUP="/tmp/.htaccess.backup.$"
+              if [ -f "$HTACCESS_BACKUP" ]; then
+                echo "🔄 Restoring unchanged .htaccess from backup"
+                cp "$HTACCESS_BACKUP" "$TARGET_DIR/.htaccess"
+                sudo chmod 644 "$TARGET_DIR/.htaccess"
+                sudo chown $USER:$USER "$TARGET_DIR/.htaccess"
+                rm "$HTACCESS_BACKUP"
+                echo "✅ Original .htaccess restored successfully"
+                echo "📄 Restored .htaccess content:"
+                cat "$TARGET_DIR/.htaccess"
+              else
+                echo "⚠️ No .htaccess backup found - this might be the first deployment"
+                if [ -f "$TARGET_DIR/.htaccess" ]; then
+                  echo "✅ .htaccess found in deployment (unexpected but proceeding)"
+                  sudo chmod 644 "$TARGET_DIR/.htaccess"
+                  sudo chown $USER:$USER "$TARGET_DIR/.htaccess"
+                else
+                  echo "❌ No .htaccess file available - this might cause issues"
+                fi
+              fi
+            fi
 
       - name: 🔁 Reload Apache Server 2
         uses: appleboy/ssh-action@v1.0.3
@@ -145,7 +195,9 @@ jobs:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: sudo systemctl reload apache2
+          script: |
+            sudo systemctl reload apache2
+            echo "✅ Apache reloaded successfully"
 
       - name: 🌐 Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -162,7 +214,7 @@ jobs:
             # Check if files were deployed
             if [ -d "$TARGET_DIR" ] && [ "$(ls -A "$TARGET_DIR")" ]; then
               echo "✅ Files deployed successfully"
-              echo "📁 Contents:"
+              echo "📁 Contents (including hidden files):"
               ls -la "$TARGET_DIR"
             else
               echo "❌ Deployment verification failed - directory is empty or doesn't exist"
@@ -182,6 +234,19 @@ jobs:
             else
               echo "❌ assets directory not found"
               exit 1
+            fi
+            
+            # Specifically check for .htaccess
+            if [ -f "$TARGET_DIR/.htaccess" ]; then
+              echo "✅ .htaccess file found and deployed"
+              echo "📝 .htaccess file size: $(wc -c < "$TARGET_DIR/.htaccess") bytes"
+              if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
+                echo "🆕 .htaccess was updated in this deployment"
+              else
+                echo "♻️ .htaccess was preserved from previous deployment"
+              fi
+            else
+              echo "⚠️ .htaccess file not found in deployment"
             fi
             
             echo "✅ Deployment verification completed successfully"
@@ -204,7 +269,7 @@ jobs:
         run: |
           echo "🚀 Frontend Deployment completed!"
           if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
-            echo "📝 .htaccess was updated on Server 2"
+            echo "🆕 .htaccess was updated with new changes"
           else
-            echo "✅ .htaccess was unchanged - skipped deployment"
+            echo "♻️ .htaccess was preserved (no changes detected)"
           fi
