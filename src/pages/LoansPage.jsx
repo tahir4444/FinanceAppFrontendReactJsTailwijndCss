@@ -2081,7 +2081,7 @@ const LoansPage = () => {
                       Pay a custom amount less than total
                     </div>
                     <div className="text-xs text-blue-600">
-                      Remaining amount and charges will be carried forward
+                      Remaining EMI amount + 10% late charge will be carried forward to the next EMI
                     </div>
                   </div>
                 </label>
@@ -2130,7 +2130,7 @@ const LoansPage = () => {
                          placeholder={`Enter amount (max: ₹${(parseFloat(markPaidEmi.amount) + getLatestIndividualCharge(markPaidEmi.emi_number)).toLocaleString()})`}
                        />
                       <p className="text-xs text-gray-500 mt-1">
-                        Enter the amount you want to pay (less than total amount)
+                        Enter the amount you want to pay. Remaining EMI + 10% late charge will be added to the next EMI.
                       </p>
                     </div>
                     
@@ -2143,10 +2143,19 @@ const LoansPage = () => {
                           • Amount to pay: ₹{parseFloat(markPaidCharges).toLocaleString()}
                         </p>
                         <p className="text-xs text-blue-600">
-                          • Remaining EMI: ₹{Math.max(0, parseFloat(markPaidEmi.amount) - Math.max(0, parseFloat(markPaidCharges) - getLatestIndividualCharge(markPaidEmi.emi_number))).toLocaleString()}
+                          • Remaining EMI: ₹{Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)).toLocaleString()}
                         </p>
                         <p className="text-xs text-blue-600">
-                          • Charges to carry forward: ₹{getLatestIndividualCharge(markPaidEmi.emi_number).toLocaleString()}
+                          • Late charge on remaining (10%): ₹{Math.round(Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) * 0.1).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          • Total remaining with charges: ₹{(Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) + Math.round(Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) * 0.1)).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          • This remaining amount + 10% charge will be added to the next EMI
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          • Previous charges to carry forward: ₹{getLatestIndividualCharge(markPaidEmi.emi_number).toLocaleString()}
                         </p>
                       </div>
                     )}
@@ -2178,11 +2187,11 @@ const LoansPage = () => {
                     // Option 1: Pay EMI only, carry forward charges
                     partialAmount = parseFloat(markPaidEmi.amount);
                     lateChargeAmount = 0; // Don't pay any charges
-                  } else                   if (selectedPaymentType === 'full') {
+                  } else if (selectedPaymentType === 'full') {
                     // Option 2: Pay total amount (EMI + charges)
-                    const latestCharge = getLatestIndividualCharge(markPaidEmi.emi_number);
-                    partialAmount = parseFloat(markPaidEmi.amount) + latestCharge;
-                    lateChargeAmount = latestCharge;
+                    const accumulatedCharges = getAccumulatedLateCharges(markPaidEmi.emi_number);
+                    partialAmount = parseFloat(markPaidEmi.amount) + accumulatedCharges;
+                    lateChargeAmount = accumulatedCharges;
                   } else if (selectedPaymentType === 'partial') {
                     // Option 3: Partial payment
                     partialAmount = markPaidCharges && !isNaN(parseFloat(markPaidCharges)) 
