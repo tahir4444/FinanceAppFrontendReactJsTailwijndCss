@@ -54,17 +54,20 @@ jobs:
           mkdir -p builds/server2
           cp -r dist/* builds/server2/
           
-          # Only copy .htaccess if it has changed
-          if [ "${{ steps.check-htaccess.outputs.changed }}" == "true" ]; then
-            if [ -f ".htaccess" ]; then
+          # Always ensure .htaccess is available in build
+          if [ -f ".htaccess" ]; then
+            if [ "${{ steps.check-htaccess.outputs.changed }}" == "true" ]; then
               echo "📝 .htaccess changed - copying new version to build directory"
               cp .htaccess builds/server2/
+              echo "htaccess_action=deploy_new" >> $GITHUB_OUTPUT
             else
-              echo "❌ .htaccess marked as changed but file not found in repository root"
-              exit 1
+              echo "📋 .htaccess unchanged - but ensuring it's available for deployment"
+              cp .htaccess builds/server2/
+              echo "htaccess_action=deploy_existing" >> $GITHUB_OUTPUT
             fi
           else
-            echo "✅ .htaccess unchanged - will preserve existing file on server"
+            echo "❌ .htaccess file not found in repository root"
+            echo "htaccess_action=missing" >> $GITHUB_OUTPUT
           fi
 
       - name: 📤 Upload Build Artifact
