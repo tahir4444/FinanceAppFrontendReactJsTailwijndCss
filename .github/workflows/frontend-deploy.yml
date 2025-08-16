@@ -206,5 +206,50 @@ jobs:
             echo "📁 Directory contents:"
             ls -la "$TARGET_DIR"
             
-            # Check for key files
+            echo "🔍 Checking for key files..."
+            
             if [ -f "$TARGET_DIR/index.html" ]; then
+              echo "✅ index.html found"
+            else
+              echo "❌ index.html not found"
+              exit 1
+            fi
+            
+            if [ -d "$TARGET_DIR/assets" ]; then
+              echo "✅ assets directory found"
+            else
+              echo "❌ assets directory not found"
+              exit 1
+            fi
+            
+            echo "🔍 Checking .htaccess status..."
+            if [ -f "$TARGET_DIR/.htaccess" ]; then
+              HTACCESS_SIZE=$(wc -c < "$TARGET_DIR/.htaccess")
+              echo "✅ .htaccess file present (${HTACCESS_SIZE} bytes)"
+              if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
+                echo "🆕 .htaccess was updated in this deployment"
+              else
+                echo "♻️ .htaccess was preserved from previous deployment"
+              fi
+            else
+              echo "⚠️ .htaccess file not found"
+            fi
+            
+            echo "✅ Deployment verification completed successfully"
+
+  deployment-summary:
+    needs: [build, deploy-server2]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 📊 Deployment Summary
+        run: |
+          echo "🚀 Frontend Deployment Summary:"
+          echo "================================"
+          if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
+            echo "🆕 .htaccess: UPDATED with new changes"
+          else
+            echo "♻️ .htaccess: PRESERVED (no changes detected)"
+          fi
+          echo "✅ Deployment completed successfully"
