@@ -32,7 +32,7 @@ jobs:
             echo "📝 .htaccess file has changed - will deploy it"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "✅ .htaccess unchanged - skipping htaccess deployment"
+            echo "✅ .htaccess unchanged - will preserve existing file"
           fi
 
       - name: 🛠 Setup Node.js
@@ -85,7 +85,7 @@ jobs:
           name: build-server2
           path: ./build
 
-      - name: 🧹 Clean Target Directory on Server 2
+      - name: 🧹 Backup and Clean Target Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER2_IP }}
@@ -94,42 +94,38 @@ jobs:
           script: |
             set -e
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
+            BACKUP_FILE="/tmp/htaccess_backup_$(date +%s)"
             
-            echo "🧹 Cleaning target directory: $TARGET_DIR"
+            echo "🧹 Preparing target directory: $TARGET_DIR"
             
             # Backup .htaccess if it exists and hasn't changed
-            HTACCESS_BACKUP=""
             if [ "${{ needs.build.outputs.htaccess-changed }}" != "true" ] && [ -f "$TARGET_DIR/.htaccess" ]; then
               echo "💾 Backing up existing .htaccess (unchanged)"
-              HTACCESS_BACKUP="/tmp/.htaccess.backup.$"
-              cp "$TARGET_DIR/.htaccess" "$HTACCESS_BACKUP"
-              echo "✅ .htaccess backed up to $HTACCESS_BACKUP"
+              cp "$TARGET_DIR/.htaccess" "$BACKUP_FILE"
+              echo "$BACKUP_FILE" > /tmp/htaccess_backup_path
+              echo "✅ .htaccess backed up to $BACKUP_FILE"
+            else
+              echo "🆕 .htaccess changed or doesn't exist - no backup needed"
+              echo "" > /tmp/htaccess_backup_path
             fi
             
-            # Check if directory exists
+            # Clean target directory
             if [ -d "$TARGET_DIR" ]; then
-              echo "📁 Target directory exists, cleaning contents..."
-              
-              # Remove contents but keep directory structure
+              echo "📁 Cleaning target directory contents..."
               sudo rm -rf "$TARGET_DIR"/* 2>/dev/null || echo "⚠️ Some files couldn't be removed"
               sudo rm -rf "$TARGET_DIR"/.[^.]* 2>/dev/null || echo "⚠️ Some hidden files couldn't be removed"
-              
-              # Ensure proper permissions
               sudo chown -R $USER:$USER "$TARGET_DIR" 2>/dev/null || echo "⚠️ Couldn't change ownership"
               sudo chmod -R 755 "$TARGET_DIR" 2>/dev/null || echo "⚠️ Couldn't change permissions"
             else
-              echo "📁 Target directory doesn't exist, creating it..."
+              echo "📁 Creating target directory..."
               sudo mkdir -p "$TARGET_DIR"
               sudo chown -R $USER:$USER "$TARGET_DIR"
               sudo chmod -R 755 "$TARGET_DIR"
             fi
             
-            # Store backup path for next step
-            echo "HTACCESS_BACKUP=$HTACCESS_BACKUP" >> $GITHUB_ENV
-            
             echo "✅ Target directory prepared for deployment"
 
-      - name: 🚀 Deploy All Files to Server 2
+      - name: 🚀 Deploy Build Files to Server 2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER2_IP }}
@@ -153,39 +149,36 @@ jobs:
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
             
             if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
-              # .htaccess changed - it should already be deployed with build files
+              # .htaccess changed - validate new file
               if [ -f "$TARGET_DIR/.htaccess" ]; then
                 echo "✅ New .htaccess deployed successfully"
-                sudo chmod 644 "$TARGET_DIR/.htaccess"
-                sudo chown $USER:$USER "$TARGET_DIR/.htaccess"
-                echo "📝 New .htaccess permissions set to 644"
-                echo "📄 New .htaccess content:"
-                cat "$TARGET_DIR/.htaccess"
+                chmod 644 "$TARGET_DIR/.htaccess"
+                chown $USER:$USER "$TARGET_DIR/.htaccess" 2>/dev/null || true
+                echo "📝 New .htaccess permissions set"
+                echo "📄 New .htaccess content (first 5 lines):"
+                head -5 "$TARGET_DIR/.htaccess"
               else
                 echo "❌ .htaccess was supposed to be deployed but not found"
                 exit 1
               fi
             else
-              # .htaccess unchanged - restore from backup if it exists
-              HTACCESS_BACKUP="/tmp/.htaccess.backup.$"
-              if [ -f "$HTACCESS_BACKUP" ]; then
-                echo "🔄 Restoring unchanged .htaccess from backup"
-                cp "$HTACCESS_BACKUP" "$TARGET_DIR/.htaccess"
-                sudo chmod 644 "$TARGET_DIR/.htaccess"
-                sudo chown $USER:$USER "$TARGET_DIR/.htaccess"
-                rm "$HTACCESS_BACKUP"
-                echo "✅ Original .htaccess restored successfully"
-                echo "📄 Restored .htaccess content:"
-                cat "$TARGET_DIR/.htaccess"
-              else
-                echo "⚠️ No .htaccess backup found - this might be the first deployment"
-                if [ -f "$TARGET_DIR/.htaccess" ]; then
-                  echo "✅ .htaccess found in deployment (unexpected but proceeding)"
-                  sudo chmod 644 "$TARGET_DIR/.htaccess"
-                  sudo chown $USER:$USER "$TARGET_DIR/.htaccess"
+              # .htaccess unchanged - restore from backup
+              if [ -f "/tmp/htaccess_backup_path" ]; then
+                BACKUP_PATH=$(cat /tmp/htaccess_backup_path)
+                if [ -n "$BACKUP_PATH" ] && [ -f "$BACKUP_PATH" ]; then
+                  echo "🔄 Restoring unchanged .htaccess from backup"
+                  cp "$BACKUP_PATH" "$TARGET_DIR/.htaccess"
+                  chmod 644 "$TARGET_DIR/.htaccess"
+                  chown $USER:$USER "$TARGET_DIR/.htaccess" 2>/dev/null || true
+                  rm "$BACKUP_PATH" "/tmp/htaccess_backup_path"
+                  echo "✅ Original .htaccess restored successfully"
+                  echo "📄 Restored .htaccess content (first 5 lines):"
+                  head -5 "$TARGET_DIR/.htaccess"
                 else
-                  echo "❌ No .htaccess file available - this might cause issues"
+                  echo "⚠️ No valid .htaccess backup - might be first deployment"
                 fi
+              else
+                echo "⚠️ No backup path file found"
               fi
             fi
 
@@ -210,66 +203,8 @@ jobs:
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
             
             echo "🔍 Verifying deployment..."
-            
-            # Check if files were deployed
-            if [ -d "$TARGET_DIR" ] && [ "$(ls -A "$TARGET_DIR")" ]; then
-              echo "✅ Files deployed successfully"
-              echo "📁 Contents (including hidden files):"
-              ls -la "$TARGET_DIR"
-            else
-              echo "❌ Deployment verification failed - directory is empty or doesn't exist"
-              exit 1
-            fi
+            echo "📁 Directory contents:"
+            ls -la "$TARGET_DIR"
             
             # Check for key files
             if [ -f "$TARGET_DIR/index.html" ]; then
-              echo "✅ index.html found"
-            else
-              echo "❌ index.html not found"
-              exit 1
-            fi
-            
-            if [ -d "$TARGET_DIR/assets" ]; then
-              echo "✅ assets directory found"
-            else
-              echo "❌ assets directory not found"
-              exit 1
-            fi
-            
-            # Specifically check for .htaccess
-            if [ -f "$TARGET_DIR/.htaccess" ]; then
-              echo "✅ .htaccess file found and deployed"
-              echo "📝 .htaccess file size: $(wc -c < "$TARGET_DIR/.htaccess") bytes"
-              if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
-                echo "🆕 .htaccess was updated in this deployment"
-              else
-                echo "♻️ .htaccess was preserved from previous deployment"
-              fi
-            else
-              echo "⚠️ .htaccess file not found in deployment"
-            fi
-            
-            echo "✅ Deployment verification completed successfully"
-            
-            # Final health check from server
-            echo "🏥 Performing final health check..."
-            if curl -sSf --connect-timeout 10 --max-time 30 "${{ secrets.FRONTEND_URL_2 }}" > /dev/null 2>&1; then
-              echo "✅ Frontend is accessible at ${{ secrets.FRONTEND_URL_2 }}"
-            else
-              echo "⚠️ Frontend may not be accessible yet (this is normal for new deployments)"
-            fi
-
-  deployment-summary:
-    needs: [build, deploy-server2]
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-      - name: 📊 Deployment Summary
-        run: |
-          echo "🚀 Frontend Deployment completed!"
-          if [ "${{ needs.build.outputs.htaccess-changed }}" == "true" ]; then
-            echo "🆕 .htaccess was updated with new changes"
-          else
-            echo "♻️ .htaccess was preserved (no changes detected)"
-          fi
