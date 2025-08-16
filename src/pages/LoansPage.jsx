@@ -639,33 +639,25 @@ const LoansPage = () => {
   const getLatestIndividualCharge = (emiNumber) => {
     if (!selectedLoan || !selectedLoan.emis) return 0;
     
-    console.log('getLatestIndividualCharge called for EMI:', emiNumber);
-    console.log('All EMIs:', selectedLoan.emis);
-    
     // First, check if the current EMI has a late_charge
     const currentEmi = selectedLoan.emis.find(emi => emi.emi_number === emiNumber);
     if (currentEmi && parseFloat(currentEmi.late_charge || 0) > 0) {
-      console.log(`Current EMI ${emiNumber} has late_charge: ${currentEmi.late_charge}`);
       return parseFloat(currentEmi.late_charge);
     }
     
-    // Find any EMI with late charges (for debugging)
+    // Find any EMI with late charges
     const anyEmiWithCharges = selectedLoan.emis.find(emi => parseFloat(emi.late_charge || 0) > 0);
     if (anyEmiWithCharges) {
-      console.log(`Found EMI ${anyEmiWithCharges.emi_number} with charges: ${anyEmiWithCharges.late_charge}`);
       return parseFloat(anyEmiWithCharges.late_charge);
     }
     
     // Find the latest charge from the previous bounced EMI only
     for (let i = selectedLoan.emis.length - 1; i >= 0; i--) {
       const emi = selectedLoan.emis[i];
-      console.log(`Checking EMI ${emi.emi_number}: status=${emi.status}, late_charge=${emi.late_charge}`);
       if (emi.emi_number < emiNumber && emi.status === 'bounced') {
-        console.log(`Found bounced EMI ${emi.emi_number} with charge ${emi.late_charge}`);
         return parseFloat(emi.late_charge || 0);
       }
     }
-    console.log('No bounced EMI found with charges');
     return 0;
   };
 
@@ -2014,43 +2006,12 @@ const LoansPage = () => {
                 <p>EMI Status: {markPaidEmi.status}</p>
                 <p>EMI Late Charge: ₹{parseFloat(markPaidEmi.late_charge || 0).toLocaleString()}</p>
                 
-                {/* Debug Information */}
-                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
-                  <p className="font-medium text-red-800">Debug Info:</p>
-                  <p>Current EMI late_charge: ₹{parseFloat(markPaidEmi.late_charge || 0).toLocaleString()}</p>
-                  <p>Current EMI status: {markPaidEmi.status}</p>
-                  <p>Total EMIs: {selectedLoan?.emis?.length || 0}</p>
-                  {selectedLoan?.emis?.map(emi => (
-                    <p key={emi.emi_number} className="text-xs">
-                      EMI #{emi.emi_number}: ₹{parseFloat(emi.amount).toLocaleString()} | Status: {emi.status} | Late Charge: ₹{parseFloat(emi.late_charge || 0).toLocaleString()}
-                    </p>
-                  ))}
-                </div>
-                
                 {(() => {
                   const latestCharge = getLatestIndividualCharge(markPaidEmi.emi_number);
-                  console.log('Debug - markPaidEmi:', markPaidEmi);
-                  console.log('Debug - selectedLoan.emis:', selectedLoan?.emis);
-                  console.log('Debug - latestCharge:', latestCharge);
-                  
-                  // Show all available late charges for debugging
-                  const allLateCharges = selectedLoan?.emis?.filter(emi => parseFloat(emi.late_charge || 0) > 0) || [];
-                  console.log('All EMIs with late charges:', allLateCharges);
                   
                   if (latestCharge > 0) {
                     return (
                       <p>Latest Late Charge: ₹{latestCharge.toLocaleString()}</p>
-                    );
-                  } else if (allLateCharges.length > 0) {
-                    return (
-                      <div>
-                        <p className="text-orange-600">Available Late Charges:</p>
-                        {allLateCharges.map(emi => (
-                          <p key={emi.emi_number} className="text-xs text-gray-600">
-                            EMI #{emi.emi_number} ({emi.status}): ₹{parseFloat(emi.late_charge).toLocaleString()}
-                          </p>
-                        ))}
-                      </div>
                     );
                   }
                   return null;
