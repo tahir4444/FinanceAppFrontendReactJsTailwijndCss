@@ -108,6 +108,9 @@ jobs:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 60s
+          command_timeout: 5m
           script: |
             set -e
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
@@ -163,7 +166,9 @@ jobs:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           timeout: 60s
+          command_timeout: 5m
           script: |
             set -e
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
@@ -217,6 +222,7 @@ jobs:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           timeout: 90s
           command_timeout: 2m
           script: |
@@ -257,6 +263,9 @@ jobs:
           host: ${{ secrets.SERVER2_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 60s
+          command_timeout: 2m
           script: |
             set -e
             TARGET_DIR="${{ secrets.SERVER2_APP_PATH }}"
