@@ -44,12 +44,19 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: true, // This enables listening on all local IPs
       hmr: {
-        overlay: true, // Show errors as overlay
         port: 5173, // HMR port (should match server port)
         host: 'localhost', // HMR host
+        clientPort: 5173, // Ensure client connects to correct port
+        overlay: {
+          warnings: false,
+          errors: true,
+        },
+        // Add WebSocket connection retry logic
+        timeout: 30000, // Connection timeout
       },
       watch: {
         usePolling: true, // Use polling for file watching (helps on some systems)
+        interval: 1000, // Polling interval
       },
       proxy: {
         '/api': {
@@ -85,6 +92,9 @@ export default defineConfig(({ mode }) => {
       // Force re-optimization on lockfile update
       force: false,
     },
+
+    // === WEBSOCKET & HMR OPTIMIZATIONS ===
+    clearScreen: false, // Keep console history for better debugging
 
     // === ENVIRONMENT VARIABLES ===
     define: {

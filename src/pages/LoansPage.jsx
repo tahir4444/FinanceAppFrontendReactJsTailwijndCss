@@ -52,6 +52,7 @@ const LoansPage = () => {
     total_emi_days: '',
     start_date: '',
     end_date: '',
+    loan_reason: '',
   });
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
@@ -106,6 +107,7 @@ const LoansPage = () => {
   const [markPaidCharges, setMarkPaidCharges] = useState('');
   const [lateChargePayment, setLateChargePayment] = useState('');
   const [selectedPaymentType, setSelectedPaymentType] = useState('emiOnly');
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState('cash');
 
   const customerOptions = Array.isArray(customers?.users)
     ? customers.users
@@ -329,6 +331,7 @@ const LoansPage = () => {
         total_emi_days: '',
         start_date: '',
         end_date: '',
+        loan_reason: '',
       });
       fetchLoans(1, true);
     } catch (error) {
@@ -353,9 +356,9 @@ const LoansPage = () => {
     }
   };
 
-  const handleMarkPaid = async (loanId, emiNumber, partialAmount, lateChargeAmount) => {
+  const handleMarkPaid = async (loanId, emiNumber, partialAmount, lateChargeAmount, paymentMode) => {
     try {
-      console.log('Marking EMI as paid:', { loanId, emiNumber, partialAmount, lateChargeAmount });
+      console.log('Marking EMI as paid:', { loanId, emiNumber, partialAmount, lateChargeAmount, paymentMode });
       if (!loanId) {
         toast.error('Loan ID is missing');
         return;
@@ -368,6 +371,9 @@ const LoansPage = () => {
       }
       if (lateChargeAmount && !isNaN(parseFloat(lateChargeAmount))) {
         requestBody.late_charge = parseFloat(lateChargeAmount);
+      }
+      if (paymentMode) {
+        requestBody.payment_mode = paymentMode;
       }
       
       const response = await markEmiPaid(loanId, emiNumber, requestBody);
@@ -512,7 +518,7 @@ const LoansPage = () => {
         ...emi,
         payment_date: emi.paid_at || new Date().toISOString(),
         due_date: emi.emi_date,
-        late_charge: emi.late_charge || 0, // Use individual charge, not accumulated
+        late_charge: getLatestIndividualCharge(emi.emi_number), // Use calculated charge
       });
       setLastPaymentResponse({
         data: { pdfUrl },
@@ -601,7 +607,7 @@ const LoansPage = () => {
       // Refresh loan details
       handleSelectLoan(selectedLoan.id || selectedLoan.loan?.id);
       if (markPaid) {
-        await handleMarkPaid(selectedLoan.id, emi.emi_number, undefined, undefined);
+                          await handleMarkPaid(selectedLoan.id, emi.emi_number, undefined, undefined, 'cash');
       }
     } catch (error) {
       toast.error('Failed to clear charges for this EMI');
@@ -618,7 +624,7 @@ const LoansPage = () => {
     setMarkPaidEmi(emi);
     setMarkPaidCharges('');
     setLateChargePayment('');
-    setSelectedPaymentType('emiOnly');
+    setSelectedPaymentType('full'); // Default to full payment since charges are included
     setShowMarkPaidModal(true);
   }
 
@@ -626,13 +632,9 @@ const LoansPage = () => {
   const getAccumulatedLateCharges = (emiNumber) => {
     if (!selectedLoan || !selectedLoan.emis) return 0;
     
-    let accumulatedCharges = 0;
-    for (const emi of selectedLoan.emis) {
-      if (emi.emi_number < emiNumber && emi.status === 'bounced') {
-        accumulatedCharges += parseFloat(emi.late_charge || 0);
-      }
-    }
-    return accumulatedCharges;
+    // For the new logic, we only care about the latest charge, not accumulated
+    // This function is kept for backward compatibility but now returns the latest charge
+    return getLatestIndividualCharge(emiNumber);
   };
 
   // Get the latest charge from the most recent bounced EMI (across the entire loan)
@@ -649,8 +651,8 @@ const LoansPage = () => {
       }
     }
     
-    // Return the late charge from the most recent bounced EMI
-    return mostRecentBouncedEmi ? parseFloat(mostRecentBouncedEmi.late_charge || 0) : 0;
+    // Return the calculated charge from the most recent bounced EMI
+    return mostRecentBouncedEmi ? getLatestIndividualCharge(mostRecentBouncedEmi.emi_number) : 0;
   };
 
   // Get the next pending EMI (first pending EMI in sequence)
@@ -685,38 +687,253 @@ const LoansPage = () => {
   const getChargesFromLastBouncedEmi = () => {
     if (!selectedLoan || !selectedLoan.emis) return 0;
     
-    const lastBouncedEmi = selectedLoan.emis
+    // Get all bounced EMIs in order
+    const bouncedEmis = selectedLoan.emis
       .filter(emi => emi.status === 'bounced')
-      .reduce((latest, current) => 
-        current.emi_number > latest.emi_number ? current : latest, 
-        { emi_number: 0, late_charge: 0 }
-      );
+      .sort((a, b) => a.emi_number - b.emi_number);
     
-    return parseFloat(lastBouncedEmi.late_charge || 0);
+    if (bouncedEmis.length === 0) return 0;
+    
+    // Get the base EMI amount from the loan
+    const baseEmiAmount = parseFloat(selectedLoan.per_day_emi || 1000);
+    
+    // Calculate charges based on bounce sequence
+    let carriedForwardAmount = 0;
+    let bounceSequenceNumber = 0;
+    let latestCharge = 0;
+    
+    for (const emi of bouncedEmis) {
+      bounceSequenceNumber++;
+      
+      if (bounceSequenceNumber === 1) {
+        // First EMI bounces: No charges
+        latestCharge = 0;
+        carriedForwardAmount = baseEmiAmount;
+      } else {
+        // Subsequent EMIs: Calculate charges on current EMI amount (which includes carried forward)
+        const currentEmiAmount = baseEmiAmount + carriedForwardAmount;
+        const charges = Math.round(currentEmiAmount * 0.1);
+        const totalCarriedForward = currentEmiAmount + charges;
+        
+        latestCharge = charges;
+        carriedForwardAmount = totalCarriedForward;
+      }
+    }
+    
+    // For pending EMIs, charges are already included in the EMI amount
+    // So we should return 0 to avoid double-counting
+    const nextPendingEmi = selectedLoan.emis.find(emi => emi.status === 'pending');
+    if (nextPendingEmi) {
+      return 0; // Charges already included in pending EMI amount
+    }
+    
+    return latestCharge;
+  };
+
+  // Get total charges including partial payment charges
+  const getTotalCharges = () => {
+    if (!selectedLoan || !selectedLoan.emis) return 0;
+    
+    // Get charges from last bounced EMI (calculated correctly)
+    const lastBouncedCharge = getChargesFromLastBouncedEmi();
+    
+    // For now, just return the last bounced charge
+    // Partial payment charges can be added later if needed
+    return lastBouncedCharge;
+  };
+
+  // Get cumulative carried forward amount (for display purposes)
+  const getCumulativeCarriedForward = () => {
+    if (!selectedLoan || !selectedLoan.emis) return 0;
+    
+    let carriedForward = 0;
+    
+    // Add up all bounced EMI amounts
+    selectedLoan.emis.forEach(emi => {
+      if (emi.status === 'bounced') {
+        carriedForward += parseFloat(emi.amount || 0);
+      }
+    });
+    
+    // Add up all partial payment remaining balances
+    selectedLoan.emis.forEach(emi => {
+      if (emi.payment_type === 'partial' && emi.remaining_balance) {
+        carriedForward += parseFloat(emi.remaining_balance || 0);
+      }
+    });
+    
+    return carriedForward;
+  };
+
+  // Calculate individual charge for a specific EMI number
+  const getIndividualCharge = (emiNumber) => {
+    if (!selectedLoan || !selectedLoan.emis) return 0;
+    
+    // Get the specific EMI
+    const targetEmi = selectedLoan.emis.find(emi => emi.emi_number === emiNumber);
+    if (!targetEmi) return 0;
+    
+    // For pending EMIs, check if there's a late_charge field from partial payments
+    if (targetEmi.status === 'pending') {
+      // If there's a late_charge field from a previous partial payment, use it
+      if (parseFloat(targetEmi.late_charge || 0) > 0) {
+        return parseFloat(targetEmi.late_charge);
+      }
+      // Otherwise, charges are already included in the EMI amount
+      return 0;
+    }
+    
+    // For paid EMIs, calculate the charge that was applied when it was paid
+    if (targetEmi.status === 'paid') {
+      // Get all bounced EMIs before this EMI
+      const previousBouncedEmis = selectedLoan.emis
+        .filter(emi => emi.status === 'bounced' && emi.emi_number < emiNumber)
+        .sort((a, b) => a.emi_number - b.emi_number);
+      
+      // Get the base EMI amount from the loan
+      const baseEmiAmount = parseFloat(selectedLoan.per_day_emi || 1000);
+      
+      // Calculate carried forward amount from previous bounces (excluding the last bounced EMI)
+      let carriedForwardAmount = 0;
+      let bounceSequenceNumber = 0;
+      
+      // Remove the last bounced EMI from calculation since it was processed after this EMI
+      const emisForCalculation = previousBouncedEmis.slice(0, -1);
+      
+      for (const emi of emisForCalculation) {
+        bounceSequenceNumber++;
+        
+        if (bounceSequenceNumber === 1) {
+          // First EMI bounces: No charges, just carry forward base amount
+          carriedForwardAmount = baseEmiAmount;
+        } else {
+          // Subsequent EMIs: Calculate charges on current EMI amount
+          const currentEmiAmount = baseEmiAmount + carriedForwardAmount;
+          const charges = Math.round(currentEmiAmount * 0.1);
+          const totalCarriedForward = currentEmiAmount + charges;
+          carriedForwardAmount = totalCarriedForward;
+        }
+      }
+      
+      // Calculate the charge for this EMI (same logic as bounced EMIs)
+      if (emisForCalculation.length === 0) {
+        // This is the first bounce
+        return 0;
+      } else {
+        // This is a subsequent bounce, calculate charge on current EMI amount
+        const currentEmiAmount = baseEmiAmount + carriedForwardAmount;
+        return Math.round(currentEmiAmount * 0.1);
+      }
+    }
+    
+    // For bounced EMIs
+    if (targetEmi.status === 'bounced') {
+      // Get all bounced EMIs before this EMI
+      const previousBouncedEmis = selectedLoan.emis
+        .filter(emi => emi.status === 'bounced' && emi.emi_number < emiNumber)
+        .sort((a, b) => a.emi_number - b.emi_number);
+      
+      // Get the base EMI amount from the loan
+      const baseEmiAmount = parseFloat(selectedLoan.per_day_emi || 1000);
+      
+      // Calculate carried forward amount from previous bounces
+      let carriedForwardAmount = 0;
+      let bounceSequenceNumber = 0;
+      
+      for (const emi of previousBouncedEmis) {
+        bounceSequenceNumber++;
+        
+        if (bounceSequenceNumber === 1) {
+          // First EMI bounces: No charges, just carry forward base amount
+          carriedForwardAmount = baseEmiAmount;
+        } else {
+          // Subsequent EMIs: Calculate charges on current EMI amount
+          const currentEmiAmount = baseEmiAmount + carriedForwardAmount;
+          const charges = Math.round(currentEmiAmount * 0.1);
+          const totalCarriedForward = currentEmiAmount + charges;
+          carriedForwardAmount = totalCarriedForward;
+        }
+      }
+      
+      // Calculate the charge for this EMI
+      if (previousBouncedEmis.length === 0) {
+        // This is the first bounce
+        return 0;
+      } else {
+        // This is a subsequent bounce, calculate charge on current EMI amount
+        const currentEmiAmount = baseEmiAmount + carriedForwardAmount;
+        return Math.round(currentEmiAmount * 0.1);
+      }
+    }
+    
+    return 0;
   };
 
   // Calculate latest individual charge from the most recent bounced EMI (for modal display)
   const getLatestIndividualCharge = (emiNumber) => {
     if (!selectedLoan || !selectedLoan.emis) return 0;
     
-    // First, check if the current EMI has a late_charge
+    // Get the current EMI
     const currentEmi = selectedLoan.emis.find(emi => emi.emi_number === emiNumber);
-    if (currentEmi && parseFloat(currentEmi.late_charge || 0) > 0) {
-      return parseFloat(currentEmi.late_charge);
+    if (!currentEmi) return 0;
+    
+    // For pending EMIs, check if there's a late_charge field from partial payments
+    if (currentEmi.status === 'pending') {
+      // If there's a late_charge field from a previous partial payment, use it
+      if (parseFloat(currentEmi.late_charge || 0) > 0) {
+        return parseFloat(currentEmi.late_charge);
+      }
+      // Otherwise, charges are already included in the EMI amount
+      return 0;
     }
     
-    // Use the latest charge from most recent bounced EMI
-    return getLatestChargeFromMostRecentBouncedEMI();
+    // For paid EMIs, check if there's a late_charge field
+    if (currentEmi.status === 'paid') {
+      if (parseFloat(currentEmi.late_charge || 0) > 0) {
+        return parseFloat(currentEmi.late_charge);
+      }
+    }
+    
+    // For bounced EMIs or when no late_charge field exists, calculate from bounce sequence
+    const bouncedEmis = selectedLoan.emis
+      .filter(emi => emi.status === 'bounced')
+      .sort((a, b) => a.emi_number - b.emi_number);
+    
+    if (bouncedEmis.length === 0) return 0;
+    
+    // Get the base EMI amount from the loan
+    const baseEmiAmount = parseFloat(selectedLoan.per_day_emi || 1000);
+    
+    // Calculate charges based on bounce sequence
+    let carriedForwardAmount = 0;
+    let bounceSequenceNumber = 0;
+    let latestCharge = 0;
+    
+    for (const emi of bouncedEmis) {
+      bounceSequenceNumber++;
+      
+      if (bounceSequenceNumber === 1) {
+        // First EMI bounces: No charges
+        latestCharge = 0;
+        carriedForwardAmount = baseEmiAmount;
+      } else {
+        // Subsequent EMIs: Calculate charges on current EMI amount (which includes carried forward)
+        const currentEmiAmount = baseEmiAmount + carriedForwardAmount;
+        const charges = Math.round(currentEmiAmount * 0.1);
+        const totalCarriedForward = currentEmiAmount + charges;
+        
+        latestCharge = charges;
+        carriedForwardAmount = totalCarriedForward;
+      }
+    }
+    
+    return latestCharge;
   };
 
   // Add this before the modal JSX:
   const hasAnyLateCharges =
             selectedLoan && selectedLoan.emis && markPaidEmi
-      ? selectedLoan.emis.some(
-          (emi) =>
-            emi.emi_number <= markPaidEmi.emi_number &&
-            parseFloat(emi.late_charge) > 0
-        )
+      ? getLatestIndividualCharge(markPaidEmi.emi_number) > 0
       : false;
 
   return (
@@ -1098,6 +1315,19 @@ const LoansPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Loan Reason
+                  </label>
+                  <textarea
+                    name="loan_reason"
+                    value={form.loan_reason}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Enter the reason for taking this loan..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button
@@ -1208,6 +1438,19 @@ const LoansPage = () => {
                     value={editForm.end_date}
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Loan Reason
+                  </label>
+                  <textarea
+                    name="loan_reason"
+                    value={editForm.loan_reason}
+                    onChange={handleEditChange}
+                    rows="3"
+                    placeholder="Enter the reason for taking this loan..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 {(user?.role === 'admin' ||
@@ -1343,8 +1586,8 @@ const LoansPage = () => {
                   <p className="text-sm text-orange-600">Latest Late Charge</p>
                   <p className="text-xl font-bold text-orange-900">
                     {(() => {
-                      const latestCharge = getLatestChargeFromMostRecentBouncedEMI();
-                      return latestCharge > 0 ? `₹${latestCharge.toLocaleString()}` : 'No charges';
+                      const totalCharges = getChargesFromLastBouncedEmi();
+                      return totalCharges > 0 ? `₹${totalCharges.toLocaleString()}` : 'No charges';
                     })()}
                   </p>
                 </div>
@@ -1410,7 +1653,7 @@ const LoansPage = () => {
                         EMI Amount
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total Due (EMI + Individual Charges if Next)
+                        Total Due
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Payment Details
@@ -1451,27 +1694,22 @@ const LoansPage = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {(() => {
                               const emiAmount = parseFloat(emi.amount || selectedLoan.per_day_emi);
-                              const individualCharge = parseFloat(emi.late_charge || 0);
                               
                               if (emi.status === 'pending') {
-                                // For pending EMIs, show charges ONLY for the next pending EMI
-                                if (isNextPendingEmi(emi)) {
-                                  // CORRECTED CALCULATION: Next EMI + Remaining Balance + Charges of Remaining Balance + Charges of Last Bounced EMI
-                                  const remainingBalance = getTotalRemainingBalance();
-                                  const chargesOnRemaining = getChargesOnRemainingBalance();
-                                  const chargesFromBounced = getChargesFromLastBouncedEmi();
-                                  
-                                  const totalDue = emiAmount + remainingBalance + chargesOnRemaining + chargesFromBounced;
-                                  
-                                  return `₹${totalDue.toLocaleString()}`;
-                                } else {
-                                  // For other pending EMIs (not next), show only EMI amount
-                                  return `₹${emiAmount.toLocaleString()}`;
-                                }
-                              } else {
-                                // For bounced/paid EMIs, show EMI amount + individual charge for that EMI
-                                const totalAmount = emiAmount + individualCharge;
+                                // For pending EMIs, show only the EMI amount (charges already included)
+                                return `₹${emiAmount.toLocaleString()}`;
+                              } else if (emi.status === 'bounced') {
+                                // For bounced EMIs, show EMI amount + individual charge
+                                const calculatedCharge = getIndividualCharge(emi.emi_number);
+                                const totalAmount = emiAmount + calculatedCharge;
                                 return `₹${totalAmount.toLocaleString()}`;
+                              } else if (emi.status === 'paid') {
+                                // For paid EMIs, show the original total due
+                                const calculatedCharge = getLatestIndividualCharge(emi.emi_number);
+                                const totalAmount = emiAmount + calculatedCharge;
+                                return `₹${totalAmount.toLocaleString()}`;
+                              } else {
+                                return `₹${emiAmount.toLocaleString()}`;
                               }
                             })()}
                           </td>
@@ -1483,15 +1721,40 @@ const LoansPage = () => {
                                     <div className="text-green-600 font-medium">
                                       Paid: ₹{parseFloat(emi.partial_payment_amount || emi.amount).toLocaleString()}
                                     </div>
-                                    {emi.remaining_balance > 0 && (
-                                      <div className="text-orange-600 text-xs">
-                                        Remaining: ₹{parseFloat(emi.remaining_balance).toLocaleString()}
-                                      </div>
-                                    )}
+                                    {(() => {
+                                      // Calculate correct remaining amount
+                                      const totalDue = parseFloat(emi.amount) + getLatestIndividualCharge(emi.emi_number);
+                                      const paidAmount = parseFloat(emi.partial_payment_amount || emi.amount);
+                                      const remaining = Math.max(0, totalDue - paidAmount);
+                                      return remaining > 0 ? (
+                                        <div className="text-orange-600 text-xs">
+                                          Remaining: ₹{remaining.toLocaleString()}
+                                        </div>
+                                      ) : null;
+                                    })()}
                                   </>
                                 ) : (
                                   <div className="text-green-600 font-medium">
                                     Full Payment: ₹{parseFloat(emi.amount).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            ) : emi.status === 'bounced' ? (
+                              <div className="space-y-1">
+                                <div className="text-red-600 font-medium">
+                                  Bounced: ₹{parseFloat(emi.amount).toLocaleString()}
+                                </div>
+                                {(() => {
+                                  const calculatedCharge = getIndividualCharge(emi.emi_number);
+                                  return calculatedCharge > 0 ? (
+                                    <div className="text-orange-600 text-xs">
+                                      Charges: ₹{calculatedCharge.toLocaleString()}
+                                    </div>
+                                  ) : null;
+                                })()}
+                                {emi.bounced_at && (
+                                  <div className="text-gray-500 text-xs">
+                                    Bounced: {formatDate(emi.bounced_at)}
                                   </div>
                                 )}
                               </div>
@@ -1514,25 +1777,13 @@ const LoansPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {(() => {
-                              // Individual Charges column shows charges from the last bounced EMI only
-                              // Not for pending EMIs, only for the actual last bounced EMI
+                              // Show charges for bounced EMIs only
                               if (emi.status === 'bounced') {
-                                // Check if this is the last bounced EMI
-                                const lastBouncedEmi = selectedLoan.emis
-                                  .filter(e => e.status === 'bounced')
-                                  .reduce((latest, current) => 
-                                    current.emi_number > latest.emi_number ? current : latest, 
-                                    { emi_number: 0 }
-                                  );
-                                
-                                if (emi.emi_number === lastBouncedEmi.emi_number) {
-                                  // This is the last bounced EMI, show its charge
-                                  const individualCharge = parseFloat(emi.late_charge || 0);
-                                  return individualCharge > 0 ? `₹${individualCharge.toLocaleString()}` : '-';
-                                }
+                                const charge = getIndividualCharge(emi.emi_number);
+                                return charge > 0 ? `₹${charge.toLocaleString()}` : '-';
                               }
                               
-                              // For all other EMIs (pending, paid, or non-last bounced), show no charges
+                              // For all other EMIs (paid, pending), show no charges
                               return '-';
                             })()}
                           </td>
@@ -1973,7 +2224,8 @@ const LoansPage = () => {
                     loanId,
                     lateChargeEmi.emi_number || lateChargeEmi.id,
                     undefined,
-                    undefined
+                    undefined,
+                    'cash'
                   );
                   setShowLateChargeModal(false);
                   setLateChargeEmi(null);
@@ -2068,7 +2320,9 @@ const LoansPage = () => {
                   <div className="text-xl font-bold text-orange-800">
                     ₹{getLatestIndividualCharge(markPaidEmi.emi_number).toLocaleString()}
                     </div>
-                  <div className="text-xs text-orange-500 mt-1">From last bounce</div>
+                  <div className="text-xs text-orange-500 mt-1">
+                    {getLatestIndividualCharge(markPaidEmi.emi_number) > 0 ? 'From last bounce' : 'Already included in EMI amount'}
+                  </div>
                 </div>
                 
                 <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -2084,37 +2338,7 @@ const LoansPage = () => {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Payment Options</h3>
               <div className="space-y-3">
-                  {/* Option 1: EMI Only */}
-                  <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    selectedPaymentType === 'emiOnly' 
-                      ? 'border-blue-500 bg-blue-50 shadow-md' 
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}>
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value="emiOnly"
-                    checked={selectedPaymentType === 'emiOnly'}
-                    onChange={(e) => {
-                      setSelectedPaymentType(e.target.value);
-                      setMarkPaidCharges('');
-                      setLateChargePayment('');
-                    }}
-                      className="mt-1 text-blue-600"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="font-semibold text-gray-800">Option 1: Pay EMI Only</div>
-                        <div className="text-lg font-bold text-blue-600">₹{parseFloat(markPaidEmi.amount).toLocaleString()}</div>
-                    </div>
-                      <p className="text-sm text-gray-600 mt-1">Pay EMI amount only</p>
-                      <p className="text-xs text-orange-600 mt-1">
-                        ⚠️ Late charges (₹{getLatestIndividualCharge(markPaidEmi.emi_number).toLocaleString()}) will be carried forward
-                      </p>
-                  </div>
-                </label>
-                
-                  {/* Option 2: Full Payment */}
+                  {/* Option 1: Full Payment (Default) */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     selectedPaymentType === 'full' 
                       ? 'border-green-500 bg-green-50 shadow-md' 
@@ -2134,19 +2358,17 @@ const LoansPage = () => {
                     />
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
-                        <div className="font-semibold text-gray-800">Option 2: Pay Total Amount</div>
-                        <div className="text-lg font-bold text-green-600">
-                          ₹{(parseFloat(markPaidEmi.amount) + getLatestIndividualCharge(markPaidEmi.emi_number)).toLocaleString()}
+                        <div className="font-semibold text-gray-800">Option 1: Pay Full Amount</div>
+                        <div className="text-lg font-bold text-green-600">₹{parseFloat(markPaidEmi.amount).toLocaleString()}</div>
                     </div>
-                    </div>
-                      <p className="text-sm text-gray-600 mt-1">Pay EMI amount + all charges</p>
+                      <p className="text-sm text-gray-600 mt-1">Pay complete EMI amount (charges already included)</p>
                       <p className="text-xs text-green-600 mt-1">
-                        ✅ All charges will be cleared completely
+                        ✅ All charges are already included in the EMI amount
                       </p>
                   </div>
                 </label>
                 
-                  {/* Option 3: Partial Payment */}
+                  {/* Option 2: Partial Payment */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     selectedPaymentType === 'partial' 
                       ? 'border-purple-500 bg-purple-50 shadow-md' 
@@ -2165,15 +2387,57 @@ const LoansPage = () => {
                       className="mt-1 text-purple-600"
                     />
                     <div className="ml-3 flex-1">
-                      <div className="font-semibold text-gray-800">Option 3: Partial Payment</div>
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold text-gray-800">Option 2: Partial Payment</div>
+                        <div className="text-lg font-bold text-purple-600">Custom Amount</div>
+                    </div>
                       <p className="text-sm text-gray-600 mt-1">Pay a custom amount less than total</p>
                       <p className="text-xs text-purple-600 mt-1">
                         📋 Remaining amount + 10% charge will be carried forward
                       </p>
                   </div>
                 </label>
+                
+
               </div>
             </div>
+
+              {/* Payment Mode Selection */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Payment Mode</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { value: 'cash', label: 'Cash', icon: '💵' },
+                    { value: 'upi', label: 'UPI', icon: '📱' },
+                    { value: 'bank_transfer', label: 'Bank Transfer', icon: '🏦' },
+                    { value: 'cheque', label: 'Cheque', icon: '📄' },
+                    { value: 'card', label: 'Card', icon: '💳' },
+                    { value: 'other', label: 'Other', icon: '📋' }
+                  ].map((mode) => (
+                    <label
+                      key={mode.value}
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedPaymentMode === mode.value
+                          ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMode"
+                        value={mode.value}
+                        checked={selectedPaymentMode === mode.value}
+                        onChange={(e) => setSelectedPaymentMode(e.target.value)}
+                        className="mr-2 text-blue-600"
+                      />
+                      <div className="flex items-center">
+                        <span className="text-lg mr-2">{mode.icon}</span>
+                        <span className="font-medium text-gray-800">{mode.label}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               {/* Dynamic Content Based on Selection */}
               {selectedPaymentType === 'partial' && (
@@ -2209,20 +2473,20 @@ const LoansPage = () => {
                         </div>
                         <div>
                           <span className="text-blue-600">Late charge (10%):</span>
-                          <span className="font-semibold ml-2">₹{Math.round(Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) * 0.1).toLocaleString()}</span>
+                          <span className="font-semibold ml-2">₹{Math.round((Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) * 0.1)).toLocaleString()}</span>
                         </div>
-                        <div>
+                        {/* <div>
                           <span className="text-blue-600">Previous charges:</span>
                           <span className="font-semibold ml-2">₹{getLatestIndividualCharge(markPaidEmi.emi_number).toLocaleString()}</span>
-                        </div>
+                        </div> */}
                       </div>
                       <div className="mt-3 pt-3 border-t border-blue-200">
                         <span className="text-blue-800 font-semibold">Remaining balance to carry forward:</span>
                         <span className="font-bold text-lg ml-2 text-blue-900">
-                          ₹{Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)).toLocaleString()}
+                          ₹{(Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) + Math.round((Math.max(0, parseFloat(markPaidEmi.amount) - parseFloat(markPaidCharges)) * 0.1))).toLocaleString()}
                         </span>
                         <p className="text-xs text-blue-600 mt-1">
-                          (Principal only - charges are tracked separately)
+                          (Remaining EMI + 10% late charge will be applied on this total)
                         </p>
                       </div>
                       </div>
@@ -2231,28 +2495,24 @@ const LoansPage = () => {
               )}
 
               {/* Payment Summary for other options */}
-              {selectedPaymentType === 'emiOnly' && (
-                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-800 mb-2">📋 Payment Summary</h4>
-                  <p className="text-blue-700">You will pay <span className="font-bold">₹{parseFloat(markPaidEmi.amount).toLocaleString()}</span> (EMI only)</p>
-                  <p className="text-sm text-blue-600 mt-1">Late charges of ₹{getLatestIndividualCharge(markPaidEmi.emi_number).toLocaleString()} will be carried forward to the next EMI</p>
-                </div>
-              )}
-
               {selectedPaymentType === 'full' && (
                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                   <h4 className="font-medium text-green-800 mb-2">✅ Payment Summary</h4>
-                  <p className="text-green-700">You will pay <span className="font-bold">₹{(parseFloat(markPaidEmi.amount) + getLatestIndividualCharge(markPaidEmi.emi_number)).toLocaleString()}</span> (EMI + charges)</p>
-                  <p className="text-sm text-green-600 mt-1">All charges will be cleared completely with this payment</p>
+                  <p className="text-green-700">You will pay <span className="font-bold">₹{parseFloat(markPaidEmi.amount).toLocaleString()}</span> (Full EMI amount)</p>
+                  <p className="text-sm text-green-600 mt-1">
+                    All charges are already included in the EMI amount. This payment will clear the EMI completely.
+                  </p>
                 </div>
               )}
+
+
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
               <button
                 onClick={() => {
                   setShowMarkPaidModal(false);
-                  setSelectedPaymentType('emiOnly');
+                  setSelectedPaymentType('full');
                   setMarkPaidCharges('');
                   setLateChargePayment('');
                 }}
@@ -2266,21 +2526,17 @@ const LoansPage = () => {
                   
                   let partialAmount, lateChargeAmount;
                   
-                  if (selectedPaymentType === 'emiOnly') {
+                  if (selectedPaymentType === 'full') {
                     partialAmount = parseFloat(markPaidEmi.amount);
-                      lateChargeAmount = 0;
-                  } else if (selectedPaymentType === 'full') {
-                    const accumulatedCharges = getAccumulatedLateCharges(markPaidEmi.emi_number);
-                    partialAmount = parseFloat(markPaidEmi.amount) + accumulatedCharges;
-                    lateChargeAmount = accumulatedCharges;
+                    lateChargeAmount = 0; // Charges already included in EMI amount
                   } else if (selectedPaymentType === 'partial') {
                     partialAmount = markPaidCharges && !isNaN(parseFloat(markPaidCharges)) 
                       ? parseFloat(markPaidCharges) 
                       : undefined;
-                      lateChargeAmount = 0;
+                    lateChargeAmount = 0;
                   }
                   
-                  await handleMarkPaid(loanId, markPaidEmi.emi_number, partialAmount, lateChargeAmount);
+                  await handleMarkPaid(loanId, markPaidEmi.emi_number, partialAmount, lateChargeAmount, selectedPaymentMode);
                   setShowMarkPaidModal(false);
                   setMarkPaidCharges('');
                   setLateChargePayment('');
@@ -2289,7 +2545,7 @@ const LoansPage = () => {
                   selectedPaymentType === 'partial' && markPaidCharges && 
                     (isNaN(parseFloat(markPaidCharges)) || 
                      parseFloat(markPaidCharges) <= 0 || 
-                     parseFloat(markPaidCharges) > parseFloat(markPaidEmi.amount) + getLatestIndividualCharge(markPaidEmi.emi_number))
+                     parseFloat(markPaidCharges) > parseFloat(markPaidEmi.amount))
                 }
                   className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               >
