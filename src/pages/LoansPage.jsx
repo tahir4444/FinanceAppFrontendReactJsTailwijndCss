@@ -81,16 +81,12 @@ const LoansPage = () => {
   const [clearMsg, setClearMsg] = useState('');
   const [exportType, setExportType] = useState('csv');
   const [exporting, setExporting] = useState(false);
+  const [lastPaymentResponse, setLastPaymentResponse] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
-  const [lastPaymentResponse, setLastPaymentResponse] = useState(null);
-  const role = user?.role || user?.Role?.name || '';
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [receiptPdfUrl, setReceiptPdfUrl] = useState(null);
   const [receiptPdfLoading, setReceiptPdfLoading] = useState(false);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+  const role = user?.role || user?.Role?.name || '';
   // Add state for the late charges modal
   const [showLateChargeModal, setShowLateChargeModal] = useState(false);
   const [lateChargeEmi, setLateChargeEmi] = useState(null);
@@ -227,20 +223,7 @@ const LoansPage = () => {
     }
   }, [editForm.start_date, editForm.total_emi_days]);
 
-  // Handle PDF loading timeout
-  useEffect(() => {
-    let timeoutId;
-    if (receiptPdfLoading && receiptPdfUrl) {
-      timeoutId = setTimeout(() => {
-        setReceiptPdfLoading(false);
-        toast.error('PDF loading timeout, showing text receipt instead');
-        setReceiptPdfUrl(null); // Fallback to text receipt
-      }, 10000); // 10 seconds timeout
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [receiptPdfLoading, receiptPdfUrl]);
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -509,40 +492,42 @@ const LoansPage = () => {
 
   const handleViewReceipt = async (emi) => {
     try {
+      // Get the loan ID from either the EMI or the selected loan
+      const loanId = emi.loan_id || selectedLoan?.id || selectedLoanId;
+      const emiNumber = emi.emi_number;
+      
+      if (!loanId || !emiNumber) {
+        console.error('Missing loanId or emiNumber:', { loanId, emiNumber });
+        toast.error('Missing loan or EMI information');
+        return;
+      }
+      
       // For existing paid EMIs, fetch the PDF URL from backend
-      const pdfUrl = `/api/emi/receipt/${emi.loan_id}/${emi.emi_number}/pdf`;
+      const pdfUrl = `/emi/receipt/${loanId}/${emiNumber}/pdf`;
       setReceiptData({
         ...emi,
         payment_date: emi.paid_at || new Date().toISOString(),
         due_date: emi.emi_date,
-        late_charge: getLatestIndividualCharge(emi.emi_number), // Use calculated charge
+        late_charge: getLatestIndividualCharge(emiNumber), // Use calculated charge
       });
       setLastPaymentResponse({
         data: { pdfUrl },
       });
 
-      // Set PDF URL for viewing
-      const cleanViewPdfUrl = pdfUrl.startsWith('/api/')
-        ? pdfUrl.replace('/api/', '/')
-        : pdfUrl;
-      const token = localStorage.getItem('token');
-      setReceiptPdfUrl(
-        `${import.meta.env.VITE_API_BASE_URL}${cleanViewPdfUrl}?token=${token}`
-      );
+      // Don't set receiptPdfUrl here - it will be set after blob is created
       setReceiptPdfLoading(true);
-
-      console.log('Calling fetchAndShowPdfBlob', emi.loan_id, emi.emi_number);
-      await fetchAndShowPdfBlob(emi.loan_id, emi.emi_number);
       setShowReceiptModal(true);
+
+      await fetchAndShowPdfBlob(loanId, emiNumber);
     } catch (error) {
       console.error('Error fetching receipt data:', error);
       toast.error('Failed to load receipt data');
     }
   };
 
+
   async function fetchAndShowPdfBlob(loanId, emiNumber) {
     setReceiptPdfLoading(true);
-    setPdfBlobUrl(null);
     try {
       const apiUrl = `${
         import.meta.env.VITE_API_BASE_URL
@@ -556,13 +541,16 @@ const LoansPage = () => {
       });
       console.log('PDF fetch response:', response);
       if (response.ok) {
+        // Create blob URL from PDF response
         const blob = await response.blob();
-        console.log('PDF blob type:', blob.type, 'size:', blob.size);
-        const url = window.URL.createObjectURL(blob);
-        setPdfBlobUrl(url);
-        console.log('PDF Blob URL:', url);
+        const blobUrl = window.URL.createObjectURL(blob);
+        console.log('PDF blob created, size:', blob.size);
+        console.log('PDF blob URL created:', blobUrl);
+        setReceiptPdfUrl(blobUrl);
+        setReceiptPdfLoading(false);
+        console.log('Receipt PDF URL set to:', blobUrl);
       } else {
-        setPdfBlobUrl(null);
+        setReceiptPdfLoading(false);
         console.log(
           'PDF fetch failed, status:',
           response.status,
@@ -571,19 +559,23 @@ const LoansPage = () => {
         );
         const text = await response.text();
         console.log('PDF fetch error body:', text);
+        toast.error('Failed to load PDF receipt');
       }
     } catch (e) {
-      setPdfBlobUrl(null);
+      setReceiptPdfLoading(false);
       console.log('PDF fetch error:', e);
+      toast.error('Failed to load PDF receipt');
     }
-    setReceiptPdfLoading(false);
   }
 
   const handleCloseReceiptModal = () => {
     setShowReceiptModal(false);
-    if (pdfBlobUrl) window.URL.revokeObjectURL(pdfBlobUrl);
-    setPdfBlobUrl(null);
     setReceiptPdfLoading(false);
+    // Clean up blob URL to prevent memory leaks
+    if (receiptPdfUrl && receiptPdfUrl.startsWith('blob:')) {
+      window.URL.revokeObjectURL(receiptPdfUrl);
+      setReceiptPdfUrl(null);
+    }
   };
 
   const handleClearEmiCharges = async (emi, amount, markPaid = false) => {
@@ -742,6 +734,16 @@ const LoansPage = () => {
       return parseFloat(emi.late_charge || 0);
     }
     
+    // For EMI-only payments, show the charges that are being carried forward
+    if (emi.status === 'paid' && emi.payment_type === 'emi_only') {
+      return parseFloat(emi.late_charge || 0);
+    }
+    
+    // For partial payments, show the charges
+    if (emi.status === 'partial') {
+      return parseFloat(emi.late_charge || 0);
+    }
+    
     // For pending EMIs, only show charges for the next upcoming pending EMI
     if (emi.status === 'pending') {
       // Find the next pending EMI (lowest EMI number with pending status)
@@ -758,7 +760,7 @@ const LoansPage = () => {
       }
     }
     
-    // For paid EMIs or other pending EMIs, no charges
+    // For other paid EMIs or pending EMIs, no charges
     return 0;
   };
 
@@ -1546,6 +1548,15 @@ const LoansPage = () => {
                                       ) : null;
                                     })()}
                                   </>
+                                ) : emi.payment_type === 'emi_only' ? (
+                                  <>
+                                    <div className="text-blue-600 font-medium">
+                                      EMI Only: ₹{parseFloat(emi.amount).toLocaleString()}
+                                    </div>
+                                    <div className="text-orange-600 text-xs">
+                                      Charges carried forward
+                                    </div>
+                                  </>
                                 ) : (
                                   <div className="text-green-600 font-medium">
                                     Full Payment: ₹{parseFloat(emi.amount).toLocaleString()}
@@ -1580,6 +1591,8 @@ const LoansPage = () => {
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 emi.status === 'paid'
                                   ? 'bg-green-100 text-green-800'
+                                  : emi.status === 'partial'
+                                  ? 'bg-orange-100 text-orange-800'
                                   : emi.status === 'bounced'
                                   ? 'bg-red-100 text-red-800'
                                   : 'bg-yellow-100 text-yellow-800'
@@ -1596,7 +1609,7 @@ const LoansPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
-                              {emi.status === 'paid' && (
+                              {(emi.status === 'paid' || emi.status === 'partial') && (
                                 <button
                                   onClick={() => handleViewReceipt(emi)}
                                   className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded text-xs"
@@ -1748,30 +1761,25 @@ const LoansPage = () => {
             </div>
 
             {/* PDF Viewer */}
-            {pdfBlobUrl ? (
+            {receiptPdfLoading ? (
+              <div className="flex-1 min-h-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600">Loading PDF...</p>
+                </div>
+              </div>
+            ) : receiptPdfUrl ? (
               <div className="flex-1 min-h-0 relative">
-                {receiptPdfLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                      <p className="text-gray-600">Loading PDF...</p>
-                    </div>
-                  </div>
-                )}
                 <iframe
-                  src={`${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                  src={`${receiptPdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                   title="EMI Receipt PDF"
                   className="w-full h-full border border-gray-200 rounded-lg"
-                  onLoad={() => setReceiptPdfLoading(false)}
                   onError={() => {
-                    setReceiptPdfLoading(false);
                     toast.error(
                       'Failed to load PDF, showing text receipt instead'
                     );
-                    setPdfBlobUrl(null); // Fallback to text receipt
                   }}
                   style={{
-                    display: receiptPdfLoading ? 'none' : 'block',
                     minHeight: '600px',
                   }}
                 />
@@ -1902,46 +1910,33 @@ const LoansPage = () => {
               >
                 Close
               </button>
-              {pdfBlobUrl && (
+              {receiptPdfUrl && receiptPdfUrl.startsWith('blob:') && (
                 <button
                   onClick={() => {
                     try {
-                      setDownloadingPdf(true);
-                      const url = pdfBlobUrl;
                       const link = document.createElement('a');
-                      link.href = url;
+                      link.href = receiptPdfUrl;
                       link.download = `EMI-Receipt-${selectedLoan?.loan_code}-${receiptData.emi_number}.pdf`;
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
-                      window.URL.revokeObjectURL(url);
                       toast.success('PDF downloaded successfully!');
                     } catch (error) {
                       console.error('Error downloading PDF:', error);
                       toast.error('Failed to download PDF');
-                    } finally {
-                      setDownloadingPdf(false);
                     }
                   }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                  disabled={downloadingPdf}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
-                  {downloadingPdf ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                      Downloading...
-                    </>
-                  ) : (
-                    'Download PDF'
-                  )}
+                  Download PDF
                 </button>
               )}
               <button
                 onClick={() => {
                   // Print functionality
-                  if (pdfBlobUrl) {
+                  if (receiptPdfUrl && receiptPdfUrl.startsWith('blob:')) {
                     // Open PDF in new window for printing
-                    const printWindow = window.open(pdfBlobUrl, '_blank');
+                    const printWindow = window.open(receiptPdfUrl, '_blank');
                     if (printWindow) {
                       printWindow.onload = () => {
                         printWindow.print();
