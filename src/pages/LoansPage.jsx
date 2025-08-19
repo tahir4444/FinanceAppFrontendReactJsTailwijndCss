@@ -330,6 +330,9 @@ const LoansPage = () => {
       const response = await getLoanDetails(loanId);
       console.log('Loan details response:', response.data);
       console.log('EMIs data:', response.data.emis);
+      
+      
+      
       setSelectedLoan(response.data);
       setSelectedLoanId(loanId); // Store loanId separately
       setShowEmi(true);
@@ -666,14 +669,14 @@ const LoansPage = () => {
       return parseFloat(targetEmi.late_charge || 0);
     }
     
-    // For pending EMIs, no charges (charges only appear on bounced EMIs)
+    // For pending EMIs, return the late_charge field (PRD compliant)
     if (targetEmi.status === 'pending') {
-      return 0;
+      return parseFloat(targetEmi.late_charge || 0);
     }
     
-    // For paid EMIs, no charges (they were cleared when paid)
+    // For paid EMIs, return the late_charge field (for EMI-only and partial payments)
     if (targetEmi.status === 'paid') {
-      return 0;
+      return parseFloat(targetEmi.late_charge || 0);
     }
     
     return 0;
@@ -698,7 +701,7 @@ const LoansPage = () => {
     const emiAmount = parseFloat(emi.amount || selectedLoan?.per_day_emi || 0);
     const charges = parseFloat(emi.late_charge || 0);
     
-    // For pending EMIs, only show charges for the next upcoming pending EMI
+    // For pending EMIs, only show charges for the next upcoming pending EMI (PRD compliant)
     if (emi.status === 'pending') {
       // Find the next pending EMI (lowest EMI number with pending status)
       const pendingEmis = selectedLoan?.emis?.filter(e => e.status === 'pending') || [];
@@ -740,11 +743,11 @@ const LoansPage = () => {
     }
     
     // For partial payments, show the charges
-    if (emi.status === 'partial') {
+    if (emi.status === 'paid' && emi.payment_type === 'partial') {
       return parseFloat(emi.late_charge || 0);
     }
     
-    // For pending EMIs, only show charges for the next upcoming pending EMI
+    // For pending EMIs, only show charges for the next upcoming pending EMI (PRD compliant)
     if (emi.status === 'pending') {
       // Find the next pending EMI (lowest EMI number with pending status)
       const pendingEmis = selectedLoan?.emis?.filter(e => e.status === 'pending') || [];
@@ -1531,19 +1534,17 @@ const LoansPage = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {(emi.status === 'paid' || emi.status === 'partial') ? (
                               <div className="space-y-1">
-                                {emi.payment_type === 'partial' || emi.status === 'partial' ? (
+                                {(emi.payment_type === 'partial' || emi.status === 'partial') ? (
                                   <>
                                     <div className="text-green-600 font-medium">
                                       Paid: ₹{parseFloat(emi.partial_payment_amount || emi.amount).toLocaleString()}
                                     </div>
                                     {(() => {
-                                      // Calculate correct remaining amount
-                                      const totalDue = parseFloat(emi.amount) + getLatestIndividualCharge(emi.emi_number);
-                                      const paidAmount = parseFloat(emi.partial_payment_amount || emi.amount);
-                                      const remaining = Math.max(0, totalDue - paidAmount);
-                                      return remaining > 0 ? (
+                                      // Use the remaining_balance field which contains the unpaid EMI balance
+                                      const remainingEmiBalance = parseFloat(emi.remaining_balance || 0);
+                                      return remainingEmiBalance > 0 ? (
                                         <div className="text-orange-600 text-xs">
-                                          Remaining: ₹{remaining.toLocaleString()}
+                                          Remaining: ₹{remainingEmiBalance.toLocaleString()}
                                         </div>
                                       ) : null;
                                     })()}
@@ -1591,7 +1592,7 @@ const LoansPage = () => {
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 emi.status === 'paid'
                                   ? 'bg-green-100 text-green-800'
-                                  : emi.status === 'partial'
+                                  : (emi.status === 'paid' && emi.payment_type === 'partial')
                                   ? 'bg-orange-100 text-orange-800'
                                   : emi.status === 'bounced'
                                   ? 'bg-red-100 text-red-800'
@@ -1830,9 +1831,24 @@ const LoansPage = () => {
 
                   {/* Payment Details */}
                   <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-green-900 mb-2">
-                      Payment Details
-                    </h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-green-900">
+                        Payment Details
+                      </h4>
+                      {receiptData.payment_type && (
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          receiptData.payment_type === 'partial' 
+                            ? 'bg-orange-100 text-orange-800'
+                            : receiptData.payment_type === 'emi_only'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {receiptData.payment_type === 'partial' ? 'Partial Payment' :
+                           receiptData.payment_type === 'emi_only' ? 'EMI Only' :
+                           'Full Payment'}
+                        </span>
+                      )}
+                    </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-green-600">EMI Amount:</span>
@@ -1852,19 +1868,77 @@ const LoansPage = () => {
                           ).toLocaleString()}
                         </span>
                       </div>
-                      <div className="flex justify-between border-t border-green-200 pt-2">
-                        <span className="text-green-600 font-semibold">
-                          Total Paid:
-                        </span>
-                        <span className="font-bold text-green-900">
-                          ₹
-                          {(
-                            parseFloat(
-                              receiptData.amount || selectedLoan?.per_day_emi
-                            ) + parseFloat(receiptData.late_charge || 0)
-                          ).toLocaleString()}
-                        </span>
-                      </div>
+                      
+                      {/* Partial Payment Details */}
+                      {receiptData.payment_type === 'partial' && receiptData.partial_payment_amount && (
+                        <>
+                          <div className="flex justify-between border-t border-green-200 pt-2">
+                            <span className="text-orange-600">Partial Payment Amount:</span>
+                            <span className="font-medium text-orange-900">
+                              ₹{parseFloat(receiptData.partial_payment_amount).toLocaleString()}
+                            </span>
+                          </div>
+                          {receiptData.remaining_balance && parseFloat(receiptData.remaining_balance) > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-red-600">Remaining Balance:</span>
+                              <span className="font-medium text-red-900">
+                                ₹{parseFloat(receiptData.remaining_balance).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between border-t border-green-200 pt-2">
+                            <span className="text-green-600 font-semibold">
+                              Total Paid:
+                            </span>
+                            <span className="font-bold text-green-900">
+                              ₹{parseFloat(receiptData.partial_payment_amount).toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* EMI Only Payment Details */}
+                      {receiptData.payment_type === 'emi_only' && (
+                        <>
+                          <div className="flex justify-between border-t border-green-200 pt-2">
+                            <span className="text-blue-600">EMI Only Payment:</span>
+                            <span className="font-medium text-blue-900">
+                              ₹{parseFloat(receiptData.amount || selectedLoan?.per_day_emi).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-orange-600 text-xs">Late charges carried forward</span>
+                            <span className="text-orange-600 text-xs font-medium">
+                              ₹{parseFloat(receiptData.late_charge || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-t border-green-200 pt-2">
+                            <span className="text-green-600 font-semibold">
+                              Total Paid:
+                            </span>
+                            <span className="font-bold text-green-900">
+                              ₹{parseFloat(receiptData.amount || selectedLoan?.per_day_emi).toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Full Payment Details */}
+                      {(!receiptData.payment_type || receiptData.payment_type === 'full') && (
+                        <div className="flex justify-between border-t border-green-200 pt-2">
+                          <span className="text-green-600 font-semibold">
+                            Total Paid:
+                          </span>
+                          <span className="font-bold text-green-900">
+                            ₹
+                            {(
+                              parseFloat(
+                                receiptData.amount || selectedLoan?.per_day_emi
+                              ) + parseFloat(receiptData.late_charge || 0)
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
