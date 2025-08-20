@@ -699,33 +699,10 @@ const LoansPage = () => {
     if (!emi) return 0;
     
     const emiAmount = parseFloat(emi.amount || selectedLoan?.per_day_emi || 0);
-    const charges = parseFloat(emi.late_charge || 0);
+    const charges = getDisplayCharges(emi); // Use the same logic as getDisplayCharges
     
-    // For pending EMIs, only show charges for the next upcoming pending EMI (PRD compliant)
-    if (emi.status === 'pending') {
-      // Find the next pending EMI (lowest EMI number with pending status)
-      const pendingEmis = selectedLoan?.emis?.filter(e => e.status === 'pending') || [];
-      if (pendingEmis.length > 0) {
-        const nextPendingEmi = pendingEmis.reduce((min, e) => 
-          e.emi_number < min.emi_number ? e : min
-        );
-        
-        // Only show charges if this is the next pending EMI
-        if (emi.emi_number === nextPendingEmi.emi_number) {
-          return emiAmount + charges;
-        }
-      }
-      // For other pending EMIs, just show EMI amount
-      return emiAmount;
-    }
-    
-    // For bounced EMIs, show EMI amount + charges
-    if (emi.status === 'bounced') {
-      return emiAmount + charges;
-    }
-    
-    // For paid EMIs, just show EMI amount
-    return emiAmount;
+    // Total Due = Current Daily EMI Amount + Latest Late Charge (Charges column)
+    return emiAmount + charges;
   };
 
   // Get charges for display in the Charges column
