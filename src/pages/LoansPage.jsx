@@ -412,6 +412,7 @@ const LoansPage = () => {
       start_date: loan.start_date,
       end_date: loan.end_date,
       status: loan.status,
+      loan_reason: loan.loan_reason || '',
     });
     setShowEditModal(true);
   };
