@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   getExpenses,
   createExpense,
+  updateExpense,
+  deleteExpense,
   getUsersForDropdown,
 } from '../services/expense.service';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +21,8 @@ import {
   FiPlus,
   FiDownload,
   FiSearch,
+  FiEdit,
+  FiTrash2,
 } from 'react-icons/fi';
 import Select from 'react-select';
 import dayjs from 'dayjs';
@@ -32,6 +36,7 @@ const ExpensesPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [startDate, setStartDate] = useState(null);
@@ -221,16 +226,50 @@ const ExpensesPage = () => {
     }
     setSubmitting(true);
     try {
-      await createExpense(form);
-      toast.success('Expense added');
+      if (editingExpense) {
+        await updateExpense(editingExpense.id, form);
+        toast.success('Expense updated successfully');
+      } else {
+        await createExpense(form);
+        toast.success('Expense added successfully');
+      }
       setShowForm(false);
+      setEditingExpense(null);
       setForm({ expense_name: '', reason: '', amount_paid: '' });
       fetchExpenses();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add expense');
+      toast.error(err.response?.data?.message || `Failed to ${editingExpense ? 'update' : 'add'} expense`);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (expense) => {
+    setEditingExpense(expense);
+    setForm({
+      expense_name: expense.expense_name,
+      reason: expense.reason,
+      amount_paid: expense.amount_paid,
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (expenseId) => {
+    if (window.confirm('Are you sure you want to delete this expense?')) {
+      try {
+        await deleteExpense(expenseId);
+        toast.success('Expense deleted successfully');
+        fetchExpenses();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to delete expense');
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingExpense(null);
+    setForm({ expense_name: '', reason: '', amount_paid: '' });
   };
 
   const handleResetFilters = () => {
@@ -647,6 +686,9 @@ const ExpensesPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -683,6 +725,34 @@ const ExpensesPage = () => {
                       })()}
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      {/* Only show edit/delete buttons if user can modify this expense */}
+                      {(user?.role === 'superadmin' || 
+                        user?.role === 'admin' || 
+                        (user?.role === 'agent' && expense.userId === user.id) ||
+                        (user?.id === expense.userId)) && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(expense)}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            title="Edit Expense"
+                          >
+                            <FiEdit className="w-3 h-3 mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                            title="Delete Expense"
+                          >
+                            <FiTrash2 className="w-3 h-3 mr-1" />
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -704,7 +774,9 @@ const ExpensesPage = () => {
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Expense</h2>
+            <h2 className="text-xl font-bold mb-4">
+              {editingExpense ? 'Edit Expense' : 'Add New Expense'}
+            </h2>
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
@@ -753,7 +825,7 @@ const ExpensesPage = () => {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={handleCancel}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
@@ -763,7 +835,10 @@ const ExpensesPage = () => {
                   disabled={submitting}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {submitting ? 'Adding...' : 'Add Expense'}
+                  {submitting 
+                    ? (editingExpense ? 'Updating...' : 'Adding...') 
+                    : (editingExpense ? 'Update Expense' : 'Add Expense')
+                  }
                 </button>
               </div>
             </form>
