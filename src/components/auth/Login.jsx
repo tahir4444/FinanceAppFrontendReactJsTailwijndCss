@@ -18,7 +18,8 @@ const Login = memo(() => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/admin/dashboard');
+      // The AuthContext will handle the role-based redirect
+      // This effect is just to prevent staying on login page if already authenticated
     }
   }, [isAuthenticated, navigate]);
 

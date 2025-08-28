@@ -20,7 +20,6 @@ import {
 
 const agentSidebarLinks = [
   { to: '/agent-dashboard', icon: FiHome, label: 'Dashboard' },
-  { to: '/agent/my-loans', icon: FiCreditCard, label: 'My Loans' },
   { to: '/agent/customers', icon: FiUsers, label: 'My Customers' },
   { to: '/agent/expenses', icon: FiFileText, label: 'Expenses' },
   { to: '/agent/notifications', icon: FiBell, label: 'Notifications' },
@@ -67,25 +66,9 @@ const AgentLayout = () => {
     );
   }
 
-  // Check if user is an agent
-  if (
-    isAuthenticated &&
-    user?.role !== 'agent' &&
-    user?.Role?.name !== 'agent'
-  ) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">
-            Access Denied
-          </div>
-          <div className="text-gray-600">
-            This area is only accessible to agents.
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Role checking is now handled at the route level
+  const userRole = user?.role || user?.Role?.name;
+  console.log('AgentLayout: User role:', userRole);
 
   const handleLogout = () => {
     setDropdownOpen(false);

@@ -30,6 +30,22 @@ import AgentCollectionsReport from './pages/AgentCollectionsReport';
 import UpgradeManagementPage from './pages/UpgradeManagementPage';
 import AppUpdatePage from './pages/AppUpdatePage';
 
+// Role-based redirect component
+const RoleBasedRedirect = () => {
+  const { user } = useAuth();
+  const userRole = user?.role || user?.Role?.name;
+  
+  console.log('RoleBasedRedirect: User role:', userRole);
+  
+  if (userRole === 'agent') {
+    console.log('RoleBasedRedirect: Redirecting agent to /agent-dashboard');
+    return <Navigate to="/agent-dashboard" replace />;
+  } else {
+    console.log('RoleBasedRedirect: Redirecting admin/superadmin to /admin/dashboard');
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+};
+
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRoles }) => {
   const { user, loading } = useAuth();
@@ -46,17 +62,21 @@ const ProtectedRoute = ({ children, requiredRoles }) => {
   }
 
   if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login');
     return <Navigate to="/admin/login" />;
   }
 
   // Check role-based access if requiredRoles is specified
   if (requiredRoles && requiredRoles.length > 0) {
     const userRole = user.role || user.Role?.name;
+    console.log('ProtectedRoute: Checking roles:', { userRole, requiredRoles });
     if (!requiredRoles.includes(userRole)) {
+      console.log('ProtectedRoute: Access denied, redirecting to unauthorized');
       return <Navigate to="/unauthorized" />;
     }
   }
 
+  console.log('ProtectedRoute: Access granted for user:', user.role || user.Role?.name);
   return children;
 };
 
@@ -73,7 +93,11 @@ const App = () => {
         <Route path="/admin/login" element={<LoginPage />} />
         <Route path="/admin/register" element={<RegisterPage />} />
         {/* Redirect old admin URLs to new /admin URLs */}
-        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <RoleBasedRedirect />
+          </ProtectedRoute>
+        } />
         <Route path="/users" element={<Navigate to="/admin/users" replace />} />
         <Route path="/loans" element={<Navigate to="/admin/loans" replace />} />
         <Route path="/expenses" element={<Navigate to="/admin/expenses" replace />} />
@@ -93,7 +117,7 @@ const App = () => {
           path="/admin"
           element={
             <ProtectedRoute>
-              <Navigate to="/admin/dashboard" replace />
+              <RoleBasedRedirect />
             </ProtectedRoute>
           }
         />
@@ -102,7 +126,7 @@ const App = () => {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRoles={['admin', 'superadmin']}>
               <AdminSidebarLayout />
             </ProtectedRoute>
           }
@@ -152,21 +176,33 @@ const App = () => {
           } />
         </Route>
 
-        {/* Agent routes with AgentLayout */}
+        {/* Agent Dashboard */}
         <Route
+          path="/agent-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRoles={['agent']}>
               <AgentLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="/agent-dashboard" element={<AgentDashboard />} />
-          <Route path="/agent/my-loans" element={<MyLoansPage />} />
-          <Route path="/agent/expenses" element={<ExpensesPage />} />
-          <Route path="/agent/notifications" element={<NotificationsPage />} />
-          <Route path="/agent/profile" element={<ProfilePage />} />
-          <Route path="/agent/settings" element={<SettingsPage />} />
-          <Route path="/agent/customers" element={<UsersManager />} />
+          <Route index element={<AgentDashboard />} />
+        </Route>
+
+        {/* Agent routes with AgentLayout */}
+        <Route
+          path="/agent"
+          element={
+            <ProtectedRoute requiredRoles={['agent']}>
+              <AgentLayout />
+            </ProtectedRoute>
+          }
+        >
+                      <Route path="my-loans" element={<MyLoansPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="customers" element={<UsersManager />} />
         </Route>
 
         {/* User routes with global navbar */}

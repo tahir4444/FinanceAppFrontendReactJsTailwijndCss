@@ -263,11 +263,16 @@ const UsersManager = () => {
       );
     } else {
       setEditingUser(null);
+      // For agents creating new customers, set default role to 'user'
+      const userRole = user?.role || user?.Role?.name;
+      const defaultRoleId = userRole === 'agent' ? 
+        roles.find(r => r.name === 'user')?.id || '' : '';
+      
       setFormData({
         name: '',
         email: '',
         password: '',
-        roleId: '',
+        roleId: defaultRoleId,
         is_active: true,
         mobile: '',
         address: '',
@@ -409,8 +414,11 @@ const UsersManager = () => {
         errors.password = 'Password must be at least 6 characters';
       }
     }
-    // Role validation
-    if (!formData.roleId) errors.roleId = 'Role is required';
+    // Role validation - only required for non-agents or if not already set
+    const userRole = user?.role || user?.Role?.name;
+    if (!formData.roleId && userRole !== 'agent') {
+      errors.roleId = 'Role is required';
+    }
     // Mobile validation (Indian mobile: 10 digits, starts with 6-9)
     const mobileRegex = /^[6-9]\d{9}$/;
     if (!formData.mobile.trim()) {
@@ -418,8 +426,11 @@ const UsersManager = () => {
     } else if (!mobileRegex.test(formData.mobile.trim())) {
       errors.mobile = 'Invalid mobile number';
     }
-    // Reference customer validation
-    if (!formData.reference_customer_id) errors.reference_customer_id = 'Reference customer is required';
+    // Reference customer validation - only required for agents creating customers
+    if (userRole === 'agent' && !formData.reference_customer_id) {
+      errors.reference_customer_id = 'Reference customer is required';
+    }
+    
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
       toast.error('Please fix the errors in the form');
@@ -472,6 +483,18 @@ const UsersManager = () => {
     try {
       const submitData = new FormData();
       console.log('Submitting reference_customer_id:', formData.reference_customer_id, typeof formData.reference_customer_id);
+      
+      // Ensure agents can only create users with 'user' role
+      const userRole = user?.role || user?.Role?.name;
+      let finalRoleId = formData.roleId;
+      
+      if (userRole === 'agent' && !editingUser) {
+        // For agents creating new users, force role to be 'user'
+        const userRoleObj = roles.find(r => r.name === 'user');
+        finalRoleId = userRoleObj?.id || '';
+        console.log('🔒 Agent creating user - forcing role to "user":', finalRoleId);
+      }
+      
       Object.entries(formData).forEach(([key, value]) => {
         if (fileFields.includes(key)) {
           // Append if value is a File (new upload) or if it's a string (existing file path)
@@ -479,8 +502,8 @@ const UsersManager = () => {
             submitData.append(key, value);
           }
         } else if (key === 'roleId') {
-          // Map roleId to role_id for backend compatibility
-          submitData.append('role_id', value);
+          // Map roleId to role_id for backend compatibility, using the enforced role for agents
+          submitData.append('role_id', finalRoleId);
         } else if (key !== 'agent_qr_code' && key !== 'roleId') {
           // For reference_customer_id, always send as number if present
           if (key === 'reference_customer_id' && value) {
@@ -1094,7 +1117,7 @@ const UsersManager = () => {
               )}
 
               {/* Role - Hide for agents since they only see customers */}
-              {(user?.role !== 'agent' && user?.Role?.name !== 'agent') && (
+              {(user?.role !== 'agent' && user?.Role?.name !== 'agent') ? (
                 <div>
                   <label
                     htmlFor="roleId"
@@ -1129,11 +1152,29 @@ const UsersManager = () => {
                       </option>
                     ))}
                   </select>
-                {fieldErrors.roleId && (
-                  <div className="text-red-600 text-sm mt-1">{fieldErrors.roleId}</div>
-                )}
-              </div>
-            )}
+                  {fieldErrors.roleId && (
+                    <div className="text-red-600 text-sm mt-1">{fieldErrors.roleId}</div>
+                  )}
+                </div>
+                             ) : (
+                 // Hidden role input for agents (defaults to 'user' role)
+                 <div>
+                   <label className="block text-sm font-semibold text-gray-700 mb-2">
+                     Role
+                   </label>
+                   <div className="px-4 py-2 bg-gray-100 rounded-lg border border-gray-300">
+                     <span className="text-sm text-gray-600">
+                       <i className="bi bi-shield-check text-green-600 mr-2"></i>
+                       User (Agents can only create customer accounts)
+                     </span>
+                   </div>
+                   <input
+                     type="hidden"
+                     name="roleId"
+                     value={formData.roleId || ''}
+                   />
+                 </div>
+               )}
 
               {/* Active Status - Hide for agents viewing customer details */}
               {!isReadOnly() && (

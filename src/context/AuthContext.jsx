@@ -61,9 +61,13 @@ const AuthProvider = ({ children }) => {
         
         // Redirect based on user role
         const userRole = response.user?.role || response.user?.Role?.name;
+        console.log('Login: User role detected:', userRole, 'User data:', response.user);
+        
         if (userRole === 'agent') {
+          console.log('Login: Redirecting agent to /agent-dashboard');
           navigate('/agent-dashboard');
         } else {
+          console.log('Login: Redirecting non-agent to /admin/dashboard');
           navigate('/admin/dashboard');
         }
       } else {
