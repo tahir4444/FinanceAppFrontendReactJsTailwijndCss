@@ -9,12 +9,12 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment variables - ALLOWED FOR SYNC (contains configuration for all environments)
+# .env
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
 
 # Log files
 npm-debug.log*
