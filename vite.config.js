@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => {
       // Skip compressed size reporting for faster builds
       reportCompressedSize: false,
       
+      // Disable source maps in build to avoid conflicts
+      sourcemap: false,
+      
       // Optimize chunk splitting for better caching
       rollupOptions: {
         output: {
@@ -106,13 +109,23 @@ export default defineConfig(({ mode }) => {
     esbuild: {
       // Drop console and debugger in production
       drop: mode === 'production' ? ['console', 'debugger'] : [],
+      // Disable source maps in esbuild
+      sourcemap: false,
     },
 
     // === CSS OPTIMIZATION ===
     css: {
-      // Optimize CSS for production
-      devSourcemap: mode === 'development',
+      // Disable CSS source maps completely
+      devSourcemap: false,
     },
+
+    // === SOURCE MAP CONFIGURATION ===
+    // Completely disable source maps to avoid browser extension conflicts
+    sourcemap: false,
+    
+    // === ADDITIONAL DEVELOPMENT SETTINGS ===
+    // Suppress source map warnings and set log level
+    logLevel: 'warn',
   };
 });
 

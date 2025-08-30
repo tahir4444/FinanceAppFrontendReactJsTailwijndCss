@@ -13,6 +13,7 @@ import TodosPage from './pages/TodosPage';
 import RolesManager from './pages/RolesManager';
 import UsersManager from './pages/UsersManager';
 import ExpensesPage from './pages/ExpensesPage';
+import LoansPage from './pages/LoansPage';
 
 import MyLoansPage from './pages/MyLoansPage.jsx';
 import SupportMessagesPage from './pages/SupportMessagesPage';
