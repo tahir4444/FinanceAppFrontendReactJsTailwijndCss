@@ -9,7 +9,36 @@ export default defineConfig(({ mode }) => {
   const backendBaseUrl = env.VITE_BACKEND_BASE_URL || 'http://localhost:5000';
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'server-info',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            // Log all requests for debugging
+            console.log(`📥 ${req.method} ${req.url}`);
+            next();
+          });
+          
+          // Add custom server startup message
+          server.httpServer?.once('listening', () => {
+            const address = server.httpServer?.address();
+            if (address && typeof address === 'object') {
+              console.log('\n🚀 Finance Admin Panel Development Server Started!');
+              console.log('='.repeat(60));
+              console.log(`📱 Local: http://localhost:${address.port}`);
+              console.log(`🌐 Network: http://0.0.0.0:${address.port}`);
+              console.log(`🔧 API Proxy: ${backendBaseUrl}`);
+              console.log(`📁 Project Root: ${process.cwd()}`);
+              console.log(`⚡ HMR: Enabled on port ${address.port}`);
+              console.log(`🔍 Debug Mode: Enabled`);
+              console.log('='.repeat(60));
+              console.log('💡 Press Ctrl+C to stop the server\n');
+            }
+          });
+        }
+      }
+    ],
     
     // === BUILD OPTIMIZATIONS FOR DEPLOYMENT ===
     build: {
@@ -46,6 +75,9 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true, // This enables listening on all local IPs
+      strictPort: false, // Allow fallback to next available port
+      open: false, // Don't auto-open browser
+      cors: true, // Enable CORS
       hmr: {
         port: 5173, // HMR port (should match server port)
         host: 'localhost', // HMR host
@@ -124,8 +156,8 @@ export default defineConfig(({ mode }) => {
     sourcemap: false,
     
     // === ADDITIONAL DEVELOPMENT SETTINGS ===
-    // Suppress source map warnings and set log level
-    logLevel: 'warn',
+    // Show full server details and information
+    logLevel: 'info',
   };
 });
 

@@ -424,10 +424,20 @@ const LoansPage = () => {
 
   const handleEditLoan = async (e) => {
     e.preventDefault();
+    
+    // Show confirmation dialog for complete reset
+    const confirmed = window.confirm(
+      '⚠️ WARNING: Editing this loan will completely reset all EMIs to pending status and clear all payment history, late charges, and credit reports. This action cannot be undone.\n\nAre you sure you want to proceed?'
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
     setEditLoading(true);
     try {
       await updateLoan(editForm.id, editForm);
-      toast.success('Loan updated successfully');
+      toast.success('Loan updated successfully! All EMIs have been reset to pending status.');
       setShowEditModal(false);
       fetchLoans(1, true);
     } catch (error) {
