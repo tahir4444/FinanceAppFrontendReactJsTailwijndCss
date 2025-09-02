@@ -55,3 +55,8 @@ console.log('2. Login with agent credentials');
 console.log('3. Check console logs for role detection');
 console.log('4. Look for "Login: User role detected:" message');
 console.log('5. Check if redirect happens to /agent-dashboard');
+
+
+
+
+
