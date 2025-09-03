@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import { FaRupeeSign, FaInfoCircle, FaCheckCircle, FaSearch, FaFilter } from 'react-icons/fa';
 import { getAgentEmiCollectionDashboard } from '../services/loan.service';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 1000; // Increased from 50 to 1000 to show all EMIs
 
 // Icon Components
 const AlertIcon = () => (

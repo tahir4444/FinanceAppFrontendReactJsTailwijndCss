@@ -59,6 +59,7 @@ const LoansPage = () => {
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
   const [showEmi, setShowEmi] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [emiAction, setEmiAction] = useState({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -1052,6 +1053,224 @@ const LoansPage = () => {
         )}
       </div>
 
+      {/* Customer Details Modal */}
+      {showCustomerModal && selectedLoan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Customer Modal Header */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-t-xl p-6 mb-6 -m-4 mb-2">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+                      <FiUsers className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">
+                        Customer Details
+                      </h2>
+                      <p className="text-green-100 text-sm">
+                        {selectedLoan.loan_code || selectedLoan.loan?.loan_code || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setShowCustomerModal(false)}
+                  className="text-white hover:text-green-200 transition-colors duration-200 p-2 hover:bg-white hover:bg-opacity-10 rounded-lg"
+                  title="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Customer Information Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Personal Information */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-blue-500 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-blue-900">Personal Information</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                    <span className="text-blue-700 font-medium">Full Name:</span>
+                    <span className="font-semibold text-blue-900">
+                      {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                    <span className="text-blue-700 font-medium">Mobile Number:</span>
+                    <span className="font-semibold text-blue-900">
+                      {selectedLoan?.customer_mobile || selectedLoan?.loan?.customer_mobile || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-blue-700 font-medium">Email Address:</span>
+                    <span className="font-semibold text-blue-900 text-sm">
+                      {selectedLoan?.customer_email || selectedLoan?.loan?.customer_email || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loan Information */}
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-purple-500 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-purple-900">Loan Information</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-purple-200">
+                    <span className="text-purple-700 font-medium">Loan Code:</span>
+                    <span className="font-semibold text-purple-900 bg-purple-200 px-3 py-1 rounded-full text-sm">
+                      {selectedLoan?.loan_code || selectedLoan?.loan?.loan_code || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-purple-200">
+                    <span className="text-purple-700 font-medium">Loan Amount:</span>
+                    <span className="font-bold text-purple-900 text-lg">
+                      ₹{parseFloat(selectedLoan?.loan_amount || selectedLoan?.loan?.loan_amount || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-purple-200">
+                    <span className="text-purple-700 font-medium">Tenure:</span>
+                    <span className="font-semibold text-purple-900">
+                      {selectedLoan?.tenure || selectedLoan?.loan?.tenure || selectedLoan?.total_emi_days || selectedLoan?.loan?.total_emi_days || 'N/A'} days
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-purple-700 font-medium">Daily EMI:</span>
+                    <span className="font-bold text-purple-900 text-lg">
+                      ₹{parseFloat(selectedLoan?.per_day_emi || selectedLoan?.loan?.per_day_emi || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Address */}
+            {(selectedLoan?.customer_address || selectedLoan?.loan?.customer_address) && (
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 mb-8 shadow-sm">
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-orange-500 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-orange-900">Customer Address</h3>
+                </div>
+                <div className="bg-white bg-opacity-50 rounded-lg p-4">
+                  <p className="text-orange-800 leading-relaxed text-sm">
+                    {selectedLoan?.customer_address || selectedLoan?.loan?.customer_address}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Loan Timeline */}
+            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-gray-500 rounded-lg mr-3">
+                  <FiCalendar className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Loan Timeline</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium uppercase tracking-wide">Start Date</p>
+                      <p className="text-lg font-bold text-gray-900 mt-1">
+                        {selectedLoan?.start_date || selectedLoan?.loan?.start_date || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium uppercase tracking-wide">End Date</p>
+                      <p className="text-lg font-bold text-gray-900 mt-1">
+                        {selectedLoan?.end_date || selectedLoan?.loan?.end_date || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium uppercase tracking-wide">Created Date</p>
+                      <p className="text-lg font-bold text-gray-900 mt-1">
+                        {selectedLoan?.created_at ? new Date(selectedLoan.created_at).toLocaleDateString() : 
+                         selectedLoan?.loan?.created_at ? new Date(selectedLoan.loan.created_at).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Loan Status */}
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-indigo-500 rounded-lg mr-3">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-indigo-900">Current Loan Status</h3>
+              </div>
+              <div className="flex items-center justify-center">
+                <span className={`inline-flex px-6 py-3 text-lg font-semibold rounded-full ${
+                  (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
+                    ? 'bg-green-100 text-green-800'
+                    : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
+                    ? 'bg-blue-100 text-blue-800'
+                    : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {selectedLoan?.status || selectedLoan?.loan?.status || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Loan Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1359,7 +1578,11 @@ const LoansPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white bg-opacity-10 rounded-lg p-3">
                       <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Customer</p>
-                      <p className="text-white font-semibold text-sm">
+                      <p 
+                        className="text-white font-semibold text-sm cursor-pointer hover:text-blue-200 transition-colors duration-200 underline decoration-dotted underline-offset-2"
+                        onClick={() => setShowCustomerModal(true)}
+                        title="Click to view customer details"
+                      >
                         {selectedLoan.customer_name || selectedLoan.loan?.customer_name || 'N/A'}
                       </p>
                       {selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile ? (
@@ -1721,23 +1944,7 @@ const LoansPage = () => {
                 </div>
               </div>
 
-              {/* Customer Address */}
-              {(selectedLoan?.customer_address || selectedLoan?.loan?.customer_address) && (
-                <div className="mt-6 bg-white rounded-lg p-5 shadow-sm border border-gray-100">
-                  <div className="flex items-center mb-3">
-                    <div className="p-2 bg-purple-100 rounded-lg mr-3">
-                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <h4 className="font-semibold text-gray-800">Customer Address</h4>
-                  </div>
-                  <p className="text-gray-700 leading-relaxed">
-                    {selectedLoan?.customer_address || selectedLoan?.loan?.customer_address}
-                  </p>
-                </div>
-              )}
+
             </div>
 
             {/* Enhanced EMI Table */}
