@@ -1338,305 +1338,451 @@ const LoansPage = () => {
       {showEmi && selectedLoan && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Loan Details - {selectedLoan.loan_code || selectedLoan.loan?.loan_code || 'N/A'}
-                </h2>
-                <div className="mt-2 space-y-1">
-                  <p className="text-gray-600">
-                    <span className="font-medium">Customer:</span>{' '}
-                    {selectedLoan.customer_name || selectedLoan.loan?.customer_name || 'N/A'}
-                    {selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile ? 
-                      ` (${selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile})` : ''}
-                  </p>
-                  <p className="text-gray-600">
-                    <span className="font-medium">Loan Amount:</span> ₹
-                    {isNaN(
-                      parseFloat(
-                        selectedLoan.loan_amount || selectedLoan.loan?.loan_amount
-                      )
-                    ) ||
-                    !(selectedLoan.loan_amount || selectedLoan.loan?.loan_amount)
-                      ? 'N/A'
-                      : parseFloat(
-                          selectedLoan.loan_amount ||
-                            selectedLoan.loan?.loan_amount
-                        ).toLocaleString()}
-                    {selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days ? 
-                      ` | Tenure: ${selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days} days` : ''}
-                  </p>
-                  <p className="text-gray-600">
-                    <span className="font-medium">Status:</span>{' '}
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
-                        ? 'bg-green-100 text-green-800'
-                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
-                        ? 'bg-blue-100 text-blue-800'
-                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {selectedLoan?.status || selectedLoan?.loan?.status || 'N/A'}
-                    </span>
-                    {selectedLoan.per_day_emi || selectedLoan.loan?.per_day_emi ? 
-                      ` | Daily EMI: ₹${parseFloat(selectedLoan.per_day_emi || selectedLoan.loan?.per_day_emi).toLocaleString()}` : ''}
-                  </p>
+            {/* Enhanced Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg p-6 mb-6 -m-4 mb-2">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+                      <FiInfo className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">
+                        Loan Details
+                      </h2>
+                      <p className="text-blue-100 text-sm">
+                        {selectedLoan.loan_code || selectedLoan.loan?.loan_code || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                      <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Customer</p>
+                      <p className="text-white font-semibold text-sm">
+                        {selectedLoan.customer_name || selectedLoan.loan?.customer_name || 'N/A'}
+                      </p>
+                      {selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile ? (
+                        <p className="text-blue-200 text-xs">
+                          {selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile}
+                        </p>
+                      ) : null}
+                    </div>
+                    
+                    <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                      <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Loan Amount</p>
+                      <p className="text-white font-semibold text-lg">
+                        ₹{isNaN(
+                          parseFloat(
+                            selectedLoan.loan_amount || selectedLoan.loan?.loan_amount
+                          )
+                        ) ||
+                        !(selectedLoan.loan_amount || selectedLoan.loan?.loan_amount)
+                          ? 'N/A'
+                          : parseFloat(
+                              selectedLoan.loan_amount ||
+                                selectedLoan.loan?.loan_amount
+                            ).toLocaleString()}
+                      </p>
+                      {selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days ? (
+                        <p className="text-blue-200 text-xs">
+                          {selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days} days tenure
+                        </p>
+                      ) : null}
+                    </div>
+                    
+                    <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                      <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Status</p>
+                      <div className="flex items-center space-x-2">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
+                            ? 'bg-green-100 text-green-800'
+                            : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
+                            ? 'bg-blue-100 text-blue-800'
+                            : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedLoan?.status || selectedLoan?.loan?.status || 'N/A'}
+                        </span>
+                      </div>
+                      {selectedLoan.per_day_emi || selectedLoan.loan?.per_day_emi ? (
+                        <p className="text-blue-200 text-xs mt-1">
+                          Daily EMI: ₹{parseFloat(selectedLoan.per_day_emi || selectedLoan.loan?.per_day_emi).toLocaleString()}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => setShowEmi(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold ml-4"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Loan Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-blue-600">
-                  Total EMIs
-                </h3>
-                <p className="text-2xl font-bold text-blue-900">
-                  {selectedLoan.total_emi_days ||
-                    selectedLoan.loan?.total_emi_days ||
-                    '-'}
-                </p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-green-600">
-                  Paid EMIs
-                </h3>
-                <p className="text-2xl font-bold text-green-900">
-                  {selectedLoan.emis?.filter((emi) => emi.status === 'paid')
-                    .length || 0}
-                </p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-yellow-600">
-                  Pending EMIs
-                </h3>
-                <p className="text-2xl font-bold text-yellow-900">
-                  {selectedLoan.emis?.filter((emi) => emi.status === 'pending')
-                    .length || 0}
-                </p>
-              </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-red-600">
-                  Bounced EMIs
-                </h3>
-                <p className="text-2xl font-bold text-red-900">
-                  {selectedLoan.emis?.filter((emi) => emi.status === 'bounced')
-                    .length || 0}
-                </p>
+                
+                <button
+                  onClick={() => setShowEmi(false)}
+                  className="text-white hover:text-blue-200 transition-colors duration-200 p-2 hover:bg-white hover:bg-opacity-10 rounded-lg"
+                  title="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            {/* Charges Summary */}
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-semibold text-orange-800 mb-3 flex items-center">
-                <FiDollarSign className="w-5 h-5 mr-2" />
-                Late Charges Summary
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-orange-600">Latest Late Charge</p>
-                  <p className="text-xl font-bold text-orange-900">
-                    {(() => {
-                      const totalCharges = getChargesFromLastBouncedEmi();
-                      return totalCharges > 0 ? `₹${totalCharges.toLocaleString()}` : 'No charges';
-                    })()}
-                  </p>
+            {/* Enhanced EMI Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-blue-600 uppercase tracking-wide">
+                      Total EMIs
+                    </h3>
+                    <p className="text-3xl font-bold text-blue-900 mt-2">
+                      {selectedLoan.total_emi_days ||
+                        selectedLoan.loan?.total_emi_days ||
+                        '-'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-500 rounded-lg">
+                    <FiCalendar className="w-6 h-6 text-white" />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-orange-600">Overdue EMIs</p>
-                  <p className="text-xl font-bold text-orange-900">
-                    {selectedLoan.emis?.filter((emi) => {
-                      const dueDate = new Date(emi.emi_date || emi.due_date);
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      return dueDate < today && emi.status !== 'paid';
-                    }).length || 0}
-                  </p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-green-600 uppercase tracking-wide">
+                      Paid EMIs
+                    </h3>
+                    <p className="text-3xl font-bold text-green-900 mt-2">
+                      {selectedLoan.emis?.filter((emi) => emi.status === 'paid')
+                        .length || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-500 rounded-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-orange-600">Days Overdue</p>
-                  <p className="text-xl font-bold text-orange-900">
-                    {(() => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const overdueEmis =
-                        selectedLoan.emis?.filter((emi) => {
-                          const dueDate = new Date(
-                            emi.emi_date || emi.due_date
-                          );
+              </div>
+              
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-600 uppercase tracking-wide">
+                      Pending EMIs
+                    </h3>
+                    <p className="text-3xl font-bold text-yellow-900 mt-2">
+                      {selectedLoan.emis?.filter((emi) => emi.status === 'pending')
+                        .length || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-yellow-500 rounded-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-red-600 uppercase tracking-wide">
+                      Bounced EMIs
+                    </h3>
+                    <p className="text-3xl font-bold text-red-900 mt-2">
+                      {selectedLoan.emis?.filter((emi) => emi.status === 'bounced')
+                        .length || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-red-500 rounded-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Charges Summary */}
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 mb-8 shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-orange-500 rounded-lg mr-3">
+                  <FiDollarSign className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-orange-800">
+                  Late Charges & Overdue Summary
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white bg-opacity-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">Latest Late Charge</p>
+                      <p className="text-2xl font-bold text-orange-900 mt-1">
+                        {(() => {
+                          const totalCharges = getChargesFromLastBouncedEmi();
+                          return totalCharges > 0 ? `₹${totalCharges.toLocaleString()}` : 'No charges';
+                        })()}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-orange-200 rounded-lg">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white bg-opacity-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">Overdue EMIs</p>
+                      <p className="text-2xl font-bold text-orange-900 mt-1">
+                        {selectedLoan.emis?.filter((emi) => {
+                          const dueDate = new Date(emi.emi_date || emi.due_date);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
                           return dueDate < today && emi.status !== 'paid';
-                        }) || [];
-                      if (overdueEmis.length === 0) return '0';
-                      // Show the max days overdue among all overdue EMIs
-                      const maxDays = Math.max(
-                        ...overdueEmis.map((emi) => {
-                          const dueDate = new Date(
-                            emi.emi_date || emi.due_date
+                        }).length || 0}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-orange-200 rounded-lg">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white bg-opacity-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">Days Overdue</p>
+                      <p className="text-2xl font-bold text-orange-900 mt-1">
+                        {(() => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const overdueEmis =
+                            selectedLoan.emis?.filter((emi) => {
+                              const dueDate = new Date(
+                                emi.emi_date || emi.due_date
+                              );
+                              return dueDate < today && emi.status !== 'paid';
+                            }) || [];
+                          if (overdueEmis.length === 0) return '0';
+                          // Show the max days overdue among all overdue EMIs
+                          const maxDays = Math.max(
+                            ...overdueEmis.map((emi) => {
+                              const dueDate = new Date(
+                                emi.emi_date || emi.due_date
+                              );
+                              return Math.floor(
+                                (today - dueDate) / (1000 * 60 * 60 * 24)
+                              );
+                            })
                           );
-                          return Math.floor(
-                            (today - dueDate) / (1000 * 60 * 60 * 24)
-                          );
-                        })
-                      );
-                      return maxDays;
-                    })()}
-                  </p>
+                          return maxDays;
+                        })()}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-orange-200 rounded-lg">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Loan Details Section */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FiInfo className="w-5 h-5 mr-2" />
-                Loan Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+            {/* Enhanced Loan Details Section */}
+            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+              <div className="flex items-center mb-6">
+                <div className="p-2 bg-gray-500 rounded-lg mr-3">
+                  <FiInfo className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Complete Loan Information
+                </h3>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Basic Loan Information */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700 border-b border-gray-200 pb-1">Basic Information</h4>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Loan Code:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.loan_code || selectedLoan?.loan?.loan_code || '-'}
-                    </span>
+                <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h4 className="font-semibold text-gray-800">Basic Information</h4>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Loan ID:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.id || selectedLoan?.loan?.id || '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Loan Amount:</span>
-                    <span className="font-medium text-green-600">
-                      ₹{parseFloat(selectedLoan?.loan_amount || selectedLoan?.loan?.loan_amount || 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tenure:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.tenure || selectedLoan?.loan?.tenure || selectedLoan?.total_emi_days || selectedLoan?.loan?.total_emi_days || '-'} days
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Per Day EMI:</span>
-                    <span className="font-medium text-blue-600">
-                      ₹{parseFloat(selectedLoan?.per_day_emi || selectedLoan?.loan?.per_day_emi || 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Loan Status:</span>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
-                        ? 'bg-green-100 text-green-800'
-                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
-                        ? 'bg-blue-100 text-blue-800'
-                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {selectedLoan?.status || selectedLoan?.loan?.status || '-'}
-                    </span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Loan Code:</span>
+                      <span className="font-semibold text-gray-900 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                        {selectedLoan?.loan_code || selectedLoan?.loan?.loan_code || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Loan ID:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.id || selectedLoan?.loan?.id || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Loan Amount:</span>
+                      <span className="font-bold text-green-600 text-lg">
+                        ₹{parseFloat(selectedLoan?.loan_amount || selectedLoan?.loan?.loan_amount || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Tenure:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.tenure || selectedLoan?.loan?.tenure || selectedLoan?.total_emi_days || selectedLoan?.loan?.total_emi_days || '-'} days
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Per Day EMI:</span>
+                      <span className="font-bold text-blue-600 text-lg">
+                        ₹{parseFloat(selectedLoan?.per_day_emi || selectedLoan?.loan?.per_day_emi || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-600 font-medium">Loan Status:</span>
+                      <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                        (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
+                          ? 'bg-green-100 text-green-800'
+                          : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
+                          ? 'bg-blue-100 text-blue-800'
+                          : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedLoan?.status || selectedLoan?.loan?.status || '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Customer Information */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-700 border-b border-gray-200 pb-1">Customer Information</h4>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Customer Name:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || '-'}
-                    </span>
+                <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-green-100 rounded-lg mr-3">
+                      <FiUsers className="w-4 h-4 text-green-600" />
+                    </div>
+                    <h4 className="font-semibold text-gray-800">Customer Information</h4>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Customer Mobile:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.customer_mobile || selectedLoan?.loan?.customer_mobile || '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Customer Email:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.customer_email || selectedLoan?.loan?.customer_email || '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Start Date:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.start_date || selectedLoan?.loan?.start_date || '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">End Date:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.end_date || selectedLoan?.loan?.end_date || '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Created Date:</span>
-                    <span className="font-medium">
-                      {selectedLoan?.created_at ? new Date(selectedLoan.created_at).toLocaleDateString() : 
-                       selectedLoan?.loan?.created_at ? new Date(selectedLoan.loan.created_at).toLocaleDateString() : '-'}
-                    </span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Customer Name:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Mobile:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.customer_mobile || selectedLoan?.loan?.customer_mobile || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Email:</span>
+                      <span className="font-semibold text-gray-900 text-sm">
+                        {selectedLoan?.customer_email || selectedLoan?.loan?.customer_email || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">Start Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.start_date || selectedLoan?.loan?.start_date || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">End Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.end_date || selectedLoan?.loan?.end_date || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-600 font-medium">Created Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedLoan?.created_at ? new Date(selectedLoan.created_at).toLocaleDateString() : 
+                         selectedLoan?.loan?.created_at ? new Date(selectedLoan.loan.created_at).toLocaleDateString() : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Customer Address */}
               {(selectedLoan?.customer_address || selectedLoan?.loan?.customer_address) && (
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <h4 className="font-medium text-gray-700 mb-2">Customer Address</h4>
-                  <p className="text-sm text-gray-600">
+                <div className="mt-6 bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center mb-3">
+                    <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <h4 className="font-semibold text-gray-800">Customer Address</h4>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">
                     {selectedLoan?.customer_address || selectedLoan?.loan?.customer_address}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* EMI Table */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            {/* Enhanced EMI Table */}
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-gray-500 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    EMI Schedule & Payment History
+                  </h3>
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         EMI #
                       </th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Due Date
                       </th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Payment Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         EMI Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Total Due
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Payment Details
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Individual Charges
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
