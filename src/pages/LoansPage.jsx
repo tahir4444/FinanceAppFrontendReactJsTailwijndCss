@@ -59,7 +59,7 @@ const LoansPage = () => {
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
   const [showEmi, setShowEmi] = useState(false);
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
   const [emiAction, setEmiAction] = useState({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -1053,149 +1053,7 @@ const LoansPage = () => {
         )}
       </div>
 
-      {/* Customer Details Modal */}
-      {showCustomerModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            {/* Customer Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-t-xl p-6 mb-6 -m-4 mb-2">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                      <FiUsers className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold">
-                        Customer Details
-                      </h2>
-                      <p className="text-green-100 text-sm">
-                        {selectedLoan.loan_code || selectedLoan.loan?.loan_code || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => setShowCustomerModal(false)}
-                  className="text-white hover:text-green-200 transition-colors duration-200 p-2 hover:bg-white hover:bg-opacity-10 rounded-lg"
-                  title="Close"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
 
-            {/* Customer Information Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Personal Information */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-blue-500 rounded-lg mr-3">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-blue-900">Personal Information</h3>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                    <span className="text-blue-700 font-medium">Full Name:</span>
-                    <span className="font-semibold text-blue-900">
-                      {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                    <span className="text-blue-700 font-medium">Mobile Number:</span>
-                    <span className="font-semibold text-blue-900">
-                      {selectedLoan?.customer_mobile || selectedLoan?.loan?.customer_mobile || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                    <span className="text-blue-700 font-medium">Email Address:</span>
-                    <span className="font-semibold text-blue-900 text-sm">
-                      {selectedLoan?.customer_email || selectedLoan?.loan?.customer_email || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-blue-700 font-medium">Customer ID:</span>
-                    <span className="font-semibold text-blue-900 bg-blue-200 px-3 py-1 rounded-full text-sm">
-                      {selectedLoan?.customer_id || selectedLoan?.loan?.customer_id || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* User Details */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-green-500 rounded-lg mr-3">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-green-900">User Details</h3>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-green-200">
-                    <span className="text-green-700 font-medium">Created By:</span>
-                    <span className="font-semibold text-green-900">
-                      {selectedLoan?.created_by_name || selectedLoan?.loan?.created_by_name || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200">
-                    <span className="text-green-700 font-medium">Reference User:</span>
-                    <span className="font-semibold text-green-900">
-                      {selectedLoan?.reference_user_name || selectedLoan?.loan?.reference_user_name || 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200">
-                    <span className="text-green-700 font-medium">Created Date:</span>
-                    <span className="font-semibold text-green-900">
-                      {selectedLoan?.created_at ? new Date(selectedLoan.created_at).toLocaleDateString() : 
-                       selectedLoan?.loan?.created_at ? new Date(selectedLoan.loan.created_at).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-green-700 font-medium">User Status:</span>
-                    <span className={`font-semibold px-3 py-1 rounded-full text-sm ${
-                      (selectedLoan?.status || selectedLoan?.loan?.status) === 'active' 
-                        ? 'bg-green-200 text-green-800'
-                        : 'bg-gray-200 text-gray-800'
-                    }`}>
-                      {selectedLoan?.status || selectedLoan?.loan?.status || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Customer Address */}
-            {(selectedLoan?.customer_address || selectedLoan?.loan?.customer_address) && (
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 mb-8 shadow-sm">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-orange-500 rounded-lg mr-3">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-orange-900">Customer Address</h3>
-                </div>
-                <div className="bg-white bg-opacity-50 rounded-lg p-4">
-                  <p className="text-orange-800 leading-relaxed text-sm">
-                    {selectedLoan?.customer_address || selectedLoan?.loan?.customer_address}
-                  </p>
-                </div>
-              </div>
-            )}
-
-
-          </div>
-        </div>
-      )}
 
       {/* Create Loan Modal */}
       {showCreateModal && (
@@ -1491,10 +1349,10 @@ const LoansPage = () => {
                     <div className="p-2 bg-white bg-opacity-20 rounded-lg">
                       <FiInfo className="w-6 h-6" />
                     </div>
-                    <div>
+              <div>
                       <h2 className="text-2xl font-bold">
                         Loan Details
-                      </h2>
+                </h2>
                       <p className="text-blue-100 text-sm">
                         {selectedLoan.loan_code || selectedLoan.loan?.loan_code || 'N/A'}
                       </p>
@@ -1504,11 +1362,7 @@ const LoansPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white bg-opacity-10 rounded-lg p-3">
                       <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Customer</p>
-                      <p 
-                        className="text-white font-semibold text-sm cursor-pointer hover:text-blue-200 transition-colors duration-200 underline decoration-dotted underline-offset-2"
-                        onClick={() => setShowCustomerModal(true)}
-                        title="Click to view customer details"
-                      >
+                      <p className="text-white font-semibold text-sm">
                         {selectedLoan.customer_name || selectedLoan.loan?.customer_name || 'N/A'}
                       </p>
                       {selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile ? (
@@ -1522,23 +1376,23 @@ const LoansPage = () => {
                       <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Loan Amount</p>
                       <p className="text-white font-semibold text-lg">
                         ₹{isNaN(
-                          parseFloat(
-                            selectedLoan.loan_amount || selectedLoan.loan?.loan_amount
-                          )
-                        ) ||
-                        !(selectedLoan.loan_amount || selectedLoan.loan?.loan_amount)
+                    parseFloat(
+                      selectedLoan.loan_amount || selectedLoan.loan?.loan_amount
+                    )
+                  ) ||
+                  !(selectedLoan.loan_amount || selectedLoan.loan?.loan_amount)
                           ? 'N/A'
-                          : parseFloat(
-                              selectedLoan.loan_amount ||
-                                selectedLoan.loan?.loan_amount
-                            ).toLocaleString()}
-                      </p>
+                    : parseFloat(
+                        selectedLoan.loan_amount ||
+                          selectedLoan.loan?.loan_amount
+                      ).toLocaleString()}
+                </p>
                       {selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days ? (
                         <p className="text-blue-200 text-xs">
                           {selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days} days tenure
                         </p>
                       ) : null}
-                    </div>
+              </div>
                     
                     <div className="bg-white bg-opacity-10 rounded-lg p-3">
                       <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Status</p>
@@ -1566,15 +1420,15 @@ const LoansPage = () => {
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => setShowEmi(false)}
+              <button
+                onClick={() => setShowEmi(false)}
                   className="text-white hover:text-blue-200 transition-colors duration-200 p-2 hover:bg-white hover:bg-opacity-10 rounded-lg"
                   title="Close"
-                >
+              >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+              </button>
               </div>
             </div>
 
@@ -1584,14 +1438,14 @@ const LoansPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-medium text-blue-600 uppercase tracking-wide">
-                      Total EMIs
-                    </h3>
+                  Total EMIs
+                </h3>
                     <p className="text-3xl font-bold text-blue-900 mt-2">
-                      {selectedLoan.total_emi_days ||
-                        selectedLoan.loan?.total_emi_days ||
-                        '-'}
-                    </p>
-                  </div>
+                  {selectedLoan.total_emi_days ||
+                    selectedLoan.loan?.total_emi_days ||
+                    '-'}
+                </p>
+              </div>
                   <div className="p-3 bg-blue-500 rounded-lg">
                     <FiCalendar className="w-6 h-6 text-white" />
                   </div>
@@ -1602,13 +1456,13 @@ const LoansPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-medium text-green-600 uppercase tracking-wide">
-                      Paid EMIs
-                    </h3>
+                  Paid EMIs
+                </h3>
                     <p className="text-3xl font-bold text-green-900 mt-2">
-                      {selectedLoan.emis?.filter((emi) => emi.status === 'paid')
-                        .length || 0}
-                    </p>
-                  </div>
+                  {selectedLoan.emis?.filter((emi) => emi.status === 'paid')
+                    .length || 0}
+                </p>
+              </div>
                   <div className="p-3 bg-green-500 rounded-lg">
                     <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1621,13 +1475,13 @@ const LoansPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-medium text-yellow-600 uppercase tracking-wide">
-                      Pending EMIs
-                    </h3>
+                  Pending EMIs
+                </h3>
                     <p className="text-3xl font-bold text-yellow-900 mt-2">
-                      {selectedLoan.emis?.filter((emi) => emi.status === 'pending')
-                        .length || 0}
-                    </p>
-                  </div>
+                  {selectedLoan.emis?.filter((emi) => emi.status === 'pending')
+                    .length || 0}
+                </p>
+              </div>
                   <div className="p-3 bg-yellow-500 rounded-lg">
                     <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1640,12 +1494,12 @@ const LoansPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-medium text-red-600 uppercase tracking-wide">
-                      Bounced EMIs
-                    </h3>
+                  Bounced EMIs
+                </h3>
                     <p className="text-3xl font-bold text-red-900 mt-2">
-                      {selectedLoan.emis?.filter((emi) => emi.status === 'bounced')
-                        .length || 0}
-                    </p>
+                  {selectedLoan.emis?.filter((emi) => emi.status === 'bounced')
+                    .length || 0}
+                </p>
                   </div>
                   <div className="p-3 bg-red-500 rounded-lg">
                     <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1664,20 +1518,20 @@ const LoansPage = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-orange-800">
                   Late Charges & Overdue Summary
-                </h3>
+              </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white bg-opacity-50 rounded-lg p-4">
                   <div className="flex items-center justify-between">
-                    <div>
+                <div>
                       <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">Latest Late Charge</p>
                       <p className="text-2xl font-bold text-orange-900 mt-1">
-                        {(() => {
-                          const totalCharges = getChargesFromLastBouncedEmi();
-                          return totalCharges > 0 ? `₹${totalCharges.toLocaleString()}` : 'No charges';
-                        })()}
-                      </p>
-                    </div>
+                    {(() => {
+                      const totalCharges = getChargesFromLastBouncedEmi();
+                      return totalCharges > 0 ? `₹${totalCharges.toLocaleString()}` : 'No charges';
+                    })()}
+                  </p>
+                </div>
                     <div className="p-2 bg-orange-200 rounded-lg">
                       <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
@@ -1688,17 +1542,17 @@ const LoansPage = () => {
                 
                 <div className="bg-white bg-opacity-50 rounded-lg p-4">
                   <div className="flex items-center justify-between">
-                    <div>
+                <div>
                       <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">Overdue EMIs</p>
                       <p className="text-2xl font-bold text-orange-900 mt-1">
-                        {selectedLoan.emis?.filter((emi) => {
-                          const dueDate = new Date(emi.emi_date || emi.due_date);
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          return dueDate < today && emi.status !== 'paid';
-                        }).length || 0}
-                      </p>
-                    </div>
+                    {selectedLoan.emis?.filter((emi) => {
+                      const dueDate = new Date(emi.emi_date || emi.due_date);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return dueDate < today && emi.status !== 'paid';
+                    }).length || 0}
+                  </p>
+                </div>
                     <div className="p-2 bg-orange-200 rounded-lg">
                       <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -1709,34 +1563,34 @@ const LoansPage = () => {
                 
                 <div className="bg-white bg-opacity-50 rounded-lg p-4">
                   <div className="flex items-center justify-between">
-                    <div>
+                <div>
                       <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">Days Overdue</p>
                       <p className="text-2xl font-bold text-orange-900 mt-1">
-                        {(() => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const overdueEmis =
-                            selectedLoan.emis?.filter((emi) => {
-                              const dueDate = new Date(
-                                emi.emi_date || emi.due_date
-                              );
-                              return dueDate < today && emi.status !== 'paid';
-                            }) || [];
-                          if (overdueEmis.length === 0) return '0';
-                          // Show the max days overdue among all overdue EMIs
-                          const maxDays = Math.max(
-                            ...overdueEmis.map((emi) => {
-                              const dueDate = new Date(
-                                emi.emi_date || emi.due_date
-                              );
-                              return Math.floor(
-                                (today - dueDate) / (1000 * 60 * 60 * 24)
-                              );
-                            })
+                    {(() => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const overdueEmis =
+                        selectedLoan.emis?.filter((emi) => {
+                          const dueDate = new Date(
+                            emi.emi_date || emi.due_date
                           );
-                          return maxDays;
-                        })()}
-                      </p>
+                          return dueDate < today && emi.status !== 'paid';
+                        }) || [];
+                      if (overdueEmis.length === 0) return '0';
+                      // Show the max days overdue among all overdue EMIs
+                      const maxDays = Math.max(
+                        ...overdueEmis.map((emi) => {
+                          const dueDate = new Date(
+                            emi.emi_date || emi.due_date
+                          );
+                          return Math.floor(
+                            (today - dueDate) / (1000 * 60 * 60 * 24)
+                          );
+                        })
+                      );
+                      return maxDays;
+                    })()}
+                  </p>
                     </div>
                     <div className="p-2 bg-orange-200 rounded-lg">
                       <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1831,11 +1685,7 @@ const LoansPage = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                       <span className="text-gray-600 font-medium">Customer Name:</span>
-                      <span 
-                        className="font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors duration-200 underline decoration-dotted underline-offset-2"
-                        onClick={() => setShowCustomerModal(true)}
-                        title="Click to view customer details"
-                      >
+                      <span className="font-semibold text-gray-900">
                         {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || '-'}
                       </span>
                     </div>
@@ -2228,15 +2078,15 @@ const LoansPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       {/* Basic Loan Information */}
                       <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Loan Code:</span>
-                          <span className="font-medium">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Loan Code:</span>
+                        <span className="font-medium">
                             {selectedLoan?.loan_code || selectedLoan?.loan?.loan_code || '-'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
                           <span className="text-gray-600">Loan ID:</span>
-                          <span className="font-medium">
+                        <span className="font-medium">
                             {selectedLoan?.id || selectedLoan?.loan?.id || '-'}
                           </span>
                         </div>
@@ -2294,15 +2144,15 @@ const LoansPage = () => {
                               : 'bg-gray-100 text-gray-800'
                           }`}>
                             {selectedLoan?.status || selectedLoan?.loan?.status || '-'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">EMI Number:</span>
-                          <span className="font-medium">
-                            {receiptData.emi_number || '-'}
-                          </span>
-                        </div>
+                        </span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">EMI Number:</span>
+                        <span className="font-medium">
+                            {receiptData.emi_number || '-'}
+                        </span>
+                      </div>
+                    </div>
                     </div>
 
                     {/* Loan Dates */}
