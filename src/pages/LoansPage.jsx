@@ -27,6 +27,7 @@ import {
   FiUsers,
   FiTrendingUp,
   FiCopy,
+  FiInfo,
 } from 'react-icons/fi';
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -1337,32 +1338,57 @@ const LoansPage = () => {
       {showEmi && selectedLoan && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div>
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  EMI Details - {selectedLoan.loan_code}
+                  Loan Details - {selectedLoan.loan_code || selectedLoan.loan?.loan_code || 'N/A'}
                 </h2>
-                <p className="text-gray-600 mt-1">
-                  Customer:{' '}
-                  {selectedLoan.customer_name ||
-                    selectedLoan.loan?.customer_name}{' '}
-                  | Amount: ₹
-                  {isNaN(
-                    parseFloat(
-                      selectedLoan.loan_amount || selectedLoan.loan?.loan_amount
-                    )
-                  ) ||
-                  !(selectedLoan.loan_amount || selectedLoan.loan?.loan_amount)
-                    ? '-'
-                    : parseFloat(
-                        selectedLoan.loan_amount ||
-                          selectedLoan.loan?.loan_amount
-                      ).toLocaleString()}
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-gray-600">
+                    <span className="font-medium">Customer:</span>{' '}
+                    {selectedLoan.customer_name || selectedLoan.loan?.customer_name || 'N/A'}
+                    {selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile ? 
+                      ` (${selectedLoan.customer_mobile || selectedLoan.loan?.customer_mobile})` : ''}
+                  </p>
+                  <p className="text-gray-600">
+                    <span className="font-medium">Loan Amount:</span> ₹
+                    {isNaN(
+                      parseFloat(
+                        selectedLoan.loan_amount || selectedLoan.loan?.loan_amount
+                      )
+                    ) ||
+                    !(selectedLoan.loan_amount || selectedLoan.loan?.loan_amount)
+                      ? 'N/A'
+                      : parseFloat(
+                          selectedLoan.loan_amount ||
+                            selectedLoan.loan?.loan_amount
+                        ).toLocaleString()}
+                    {selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days ? 
+                      ` | Tenure: ${selectedLoan.tenure || selectedLoan.loan?.tenure || selectedLoan.total_emi_days || selectedLoan.loan?.total_emi_days} days` : ''}
+                  </p>
+                  <p className="text-gray-600">
+                    <span className="font-medium">Status:</span>{' '}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
+                        ? 'bg-green-100 text-green-800'
+                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
+                        ? 'bg-blue-100 text-blue-800'
+                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedLoan?.status || selectedLoan?.loan?.status || 'N/A'}
+                    </span>
+                    {selectedLoan.per_day_emi || selectedLoan.loan?.per_day_emi ? 
+                      ` | Daily EMI: ₹${parseFloat(selectedLoan.per_day_emi || selectedLoan.loan?.per_day_emi).toLocaleString()}` : ''}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setShowEmi(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold ml-4"
               >
                 ✕
               </button>
@@ -1466,6 +1492,118 @@ const LoansPage = () => {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Loan Details Section */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <FiInfo className="w-5 h-5 mr-2" />
+                Loan Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                {/* Basic Loan Information */}
+                <div className="space-y-3">
+                  <h4 className="font-medium text-gray-700 border-b border-gray-200 pb-1">Basic Information</h4>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Loan Code:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.loan_code || selectedLoan?.loan?.loan_code || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Loan ID:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.id || selectedLoan?.loan?.id || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Loan Amount:</span>
+                    <span className="font-medium text-green-600">
+                      ₹{parseFloat(selectedLoan?.loan_amount || selectedLoan?.loan?.loan_amount || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tenure:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.tenure || selectedLoan?.loan?.tenure || selectedLoan?.total_emi_days || selectedLoan?.loan?.total_emi_days || '-'} days
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Per Day EMI:</span>
+                    <span className="font-medium text-blue-600">
+                      ₹{parseFloat(selectedLoan?.per_day_emi || selectedLoan?.loan?.per_day_emi || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Loan Status:</span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
+                        ? 'bg-green-100 text-green-800'
+                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
+                        ? 'bg-blue-100 text-blue-800'
+                        : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedLoan?.status || selectedLoan?.loan?.status || '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Customer Information */}
+                <div className="space-y-3">
+                  <h4 className="font-medium text-gray-700 border-b border-gray-200 pb-1">Customer Information</h4>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer Name:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer Mobile:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.customer_mobile || selectedLoan?.loan?.customer_mobile || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer Email:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.customer_email || selectedLoan?.loan?.customer_email || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Start Date:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.start_date || selectedLoan?.loan?.start_date || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">End Date:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.end_date || selectedLoan?.loan?.end_date || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Created Date:</span>
+                    <span className="font-medium">
+                      {selectedLoan?.created_at ? new Date(selectedLoan.created_at).toLocaleDateString() : 
+                       selectedLoan?.loan?.created_at ? new Date(selectedLoan.loan.created_at).toLocaleDateString() : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Address */}
+              {(selectedLoan?.customer_address || selectedLoan?.loan?.customer_address) && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <h4 className="font-medium text-gray-700 mb-2">Customer Address</h4>
+                  <p className="text-sm text-gray-600">
+                    {selectedLoan?.customer_address || selectedLoan?.loan?.customer_address}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* EMI Table */}
@@ -1801,29 +1939,124 @@ const LoansPage = () => {
 
                   {/* Loan Details */}
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 mb-2">
+                    <h4 className="font-semibold text-gray-900 mb-3">
                       Loan Details
                     </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Loan Code:</span>
-                        <span className="font-medium">
-                          {selectedLoan?.loan_code}
-                        </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      {/* Basic Loan Information */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loan Code:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.loan_code || selectedLoan?.loan?.loan_code || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loan ID:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.id || selectedLoan?.loan?.id || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loan Amount:</span>
+                          <span className="font-medium text-green-600">
+                            ₹{parseFloat(selectedLoan?.loan_amount || selectedLoan?.loan?.loan_amount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tenure:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.tenure || selectedLoan?.loan?.tenure || selectedLoan?.total_emi_days || selectedLoan?.loan?.total_emi_days || '-'} days
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Per Day EMI:</span>
+                          <span className="font-medium text-blue-600">
+                            ₹{parseFloat(selectedLoan?.per_day_emi || selectedLoan?.loan?.per_day_emi || 0).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Customer:</span>
-                        <span className="font-medium">
-                          {selectedLoan?.customer_name}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">EMI Number:</span>
-                        <span className="font-medium">
-                          {receiptData.emi_number}
-                        </span>
+
+                      {/* Customer Information */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Customer Name:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.customer_name || selectedLoan?.loan?.customer_name || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Customer Mobile:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.customer_mobile || selectedLoan?.loan?.customer_mobile || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Customer Email:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.customer_email || selectedLoan?.loan?.customer_email || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loan Status:</span>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            (selectedLoan?.status || selectedLoan?.loan?.status) === 'approved' 
+                              ? 'bg-green-100 text-green-800'
+                              : (selectedLoan?.status || selectedLoan?.loan?.status) === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : (selectedLoan?.status || selectedLoan?.loan?.status) === 'closed'
+                              ? 'bg-blue-100 text-blue-800'
+                              : (selectedLoan?.status || selectedLoan?.loan?.status) === 'default'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {selectedLoan?.status || selectedLoan?.loan?.status || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">EMI Number:</span>
+                          <span className="font-medium">
+                            {receiptData.emi_number || '-'}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Loan Dates */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h5 className="font-medium text-gray-700 mb-2">Loan Timeline</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Start Date:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.start_date || selectedLoan?.loan?.start_date || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">End Date:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.end_date || selectedLoan?.loan?.end_date || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Created Date:</span>
+                          <span className="font-medium">
+                            {selectedLoan?.created_at ? new Date(selectedLoan.created_at).toLocaleDateString() : 
+                             selectedLoan?.loan?.created_at ? new Date(selectedLoan.loan.created_at).toLocaleDateString() : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Customer Address */}
+                    {(selectedLoan?.customer_address || selectedLoan?.loan?.customer_address) && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h5 className="font-medium text-gray-700 mb-2">Customer Address</h5>
+                        <p className="text-sm text-gray-600">
+                          {selectedLoan?.customer_address || selectedLoan?.loan?.customer_address}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Payment Details */}
